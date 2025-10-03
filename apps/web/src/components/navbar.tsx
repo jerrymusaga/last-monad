@@ -14,7 +14,7 @@ import {
 
 const navLinks = [
   { name: "Home", href: "/" },
-  { name: "Docs", href: "https://docs.celo.org", external: true },
+  { name: "Docs", href: "https://docs.monad.xyz", external: true },
 ]
 
 export function Navbar() {

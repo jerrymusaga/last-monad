@@ -2,7 +2,7 @@
 
 multiplayer blockchain elimination game where minority wins
 
-A modern Celo blockchain application built with Next.js, TypeScript, and Turborepo.
+A modern Monad blockchain application built with Next.js, TypeScript, and Turborepo.
 
 ## Getting Started
 
@@ -43,6 +43,6 @@ This is a monorepo managed by Turborepo with the following structure:
 ## Learn More
 
 - [Next.js Documentation](https://nextjs.org/docs)
-- [Celo Documentation](https://docs.celo.org/)
+- [Monad Documentation](https://docs.monad.xyz/)
 - [Turborepo Documentation](https://turbo.build/repo/docs)
 - [shadcn/ui Documentation](https://ui.shadcn.com/)

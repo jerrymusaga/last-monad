@@ -55,7 +55,7 @@ export async function getFarcasterManifest() {
       subtitle: "multiplayer prediction game", // 30 characters, no emojis or special characters, short description under app name
       description: "a multiplayer prediction elimination game where minority wins in any round", // 170 characters, no emojis or special characters, promotional message displayed on Mini App Page
       primaryCategory: "social",
-      tags: ["mini-app", "celo"], // up to 5 tags, filtering/search tags
+      tags: ["mini-app", "monad"], // up to 5 tags, filtering/search tags
       tagline: "Multiplayer prediction game", // 30 characters, marketing tagline should be punchy and descriptive
       ogTitle: `${frameName}`, // 30 characters, app name + short tag, Title case, no emojis
       ogDescription: "a multiplayer prediction elimination game where minority wins in any round", // 100 characters, summarize core benefits in 1-2 lines

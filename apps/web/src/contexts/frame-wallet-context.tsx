@@ -4,14 +4,39 @@ import { farcasterMiniApp } from "@farcaster/miniapp-wagmi-connector";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactNode } from "react";
 import { WagmiProvider, createConfig, http } from "wagmi";
-import { celo, celoAlfajores } from "wagmi/chains";
+import { defineChain } from "viem";
+
+// Monad Testnet Chain Configuration
+export const monadTestnet = defineChain({
+  id: 10143,
+  name: "Monad Testnet",
+  nativeCurrency: {
+    name: "Monad",
+    symbol: "MON",
+    decimals: 18,
+  },
+  rpcUrls: {
+    default: {
+      http: ["https://testnet-rpc.monad.xyz"],
+    },
+    public: {
+      http: ["https://testnet-rpc.monad.xyz"],
+    },
+  },
+  blockExplorers: {
+    default: {
+      name: "Monad Explorer",
+      url: "https://testnet.monadexplorer.com",
+    },
+  },
+  testnet: true,
+});
 
 const config = createConfig({
-  chains: [celo, celoAlfajores],
+  chains: [monadTestnet],
   connectors: [farcasterMiniApp()],
   transports: {
-    [celo.id]: http(),
-    [celoAlfajores.id]: http(),
+    [monadTestnet.id]: http(),
   },
 });
 
