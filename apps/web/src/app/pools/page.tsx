@@ -152,7 +152,7 @@ export default function PoolsPage() {
                   </p>
                 </div>
                 <button
-                  onClick={() => router.push("/pools/create")}
+                  onClick={() => router.push("/create-pool")}
                   className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-8 py-4 text-lg font-bold rounded-xl whitespace-nowrap transition-all hover:scale-105"
                 >
                   ➕ Create Pool
