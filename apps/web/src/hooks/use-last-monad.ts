@@ -602,3 +602,123 @@ export function useWatchPoolActivated(onPoolActivated?: (log: any) => void) {
     },
   });
 }
+
+/**
+ * Watch for PlayerMadeChoice events
+ */
+export function useWatchPlayerMadeChoice(onPlayerMadeChoice?: (log: any) => void) {
+  useWatchContractEvent({
+    ...lastMonadConfig,
+    eventName: "PlayerMadeChoice",
+    onLogs: (logs) => {
+      if (onPlayerMadeChoice) {
+        logs.forEach((log) => onPlayerMadeChoice(log));
+      }
+    },
+  });
+}
+
+/**
+ * Watch for RoundResolved events (Critical for game progression)
+ */
+export function useWatchRoundResolved(onRoundResolved?: (log: any) => void) {
+  useWatchContractEvent({
+    ...lastMonadConfig,
+    eventName: "RoundResolved",
+    onLogs: (logs) => {
+      if (onRoundResolved) {
+        logs.forEach((log) => onRoundResolved(log));
+      }
+    },
+  });
+}
+
+/**
+ * Watch for RoundRepeated events
+ */
+export function useWatchRoundRepeated(onRoundRepeated?: (log: any) => void) {
+  useWatchContractEvent({
+    ...lastMonadConfig,
+    eventName: "RoundRepeated",
+    onLogs: (logs) => {
+      if (onRoundRepeated) {
+        logs.forEach((log) => onRoundRepeated(log));
+      }
+    },
+  });
+}
+
+/**
+ * Watch for PoolAbandoned events
+ */
+export function useWatchPoolAbandoned(onPoolAbandoned?: (log: any) => void) {
+  useWatchContractEvent({
+    ...lastMonadConfig,
+    eventName: "PoolAbandoned",
+    onLogs: (logs) => {
+      if (onPoolAbandoned) {
+        logs.forEach((log) => onPoolAbandoned(log));
+      }
+    },
+  });
+}
+
+/**
+ * Watch for StakeDeposited events
+ */
+export function useWatchStakeDeposited(onStakeDeposited?: (log: any) => void) {
+  useWatchContractEvent({
+    ...lastMonadConfig,
+    eventName: "StakeDeposited",
+    onLogs: (logs) => {
+      if (onStakeDeposited) {
+        logs.forEach((log) => onStakeDeposited(log));
+      }
+    },
+  });
+}
+
+/**
+ * Watch for StakeWithdrawn events
+ */
+export function useWatchStakeWithdrawn(onStakeWithdrawn?: (log: any) => void) {
+  useWatchContractEvent({
+    ...lastMonadConfig,
+    eventName: "StakeWithdrawn",
+    onLogs: (logs) => {
+      if (onStakeWithdrawn) {
+        logs.forEach((log) => onStakeWithdrawn(log));
+      }
+    },
+  });
+}
+
+/**
+ * Watch for CreatorRewardClaimed events
+ */
+export function useWatchCreatorRewardClaimed(onCreatorRewardClaimed?: (log: any) => void) {
+  useWatchContractEvent({
+    ...lastMonadConfig,
+    eventName: "CreatorRewardClaimed",
+    onLogs: (logs) => {
+      if (onCreatorRewardClaimed) {
+        logs.forEach((log) => onCreatorRewardClaimed(log));
+      }
+    },
+  });
+}
+
+/**
+ * Watch for ProjectPoolUpdated events
+ */
+export function useWatchProjectPoolUpdated(onProjectPoolUpdated?: (log: any) => void) {
+  useWatchContractEvent({
+    ...lastMonadConfig,
+    eventName: "ProjectPoolUpdated",
+    onLogs: (logs) => {
+      if (onProjectPoolUpdated) {
+        logs.forEach((log) => onProjectPoolUpdated(log));
+      }
+    },
+  });
+}

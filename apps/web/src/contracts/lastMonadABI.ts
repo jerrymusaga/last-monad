@@ -62,6 +62,69 @@ export const LAST_MONAD_ABI = [
     name: "GameCompleted",
     type: "event",
   },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, internalType: "uint256", name: "poolId", type: "uint256" },
+      { indexed: true, internalType: "address", name: "player", type: "address" },
+      { indexed: false, internalType: "uint8", name: "choice", type: "uint8" },
+      { indexed: false, internalType: "uint256", name: "round", type: "uint256" },
+    ],
+    name: "PlayerMadeChoice",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, internalType: "uint256", name: "poolId", type: "uint256" },
+      { indexed: false, internalType: "uint256", name: "round", type: "uint256" },
+      { indexed: false, internalType: "uint8", name: "winningChoice", type: "uint8" },
+      { indexed: false, internalType: "uint256", name: "eliminatedCount", type: "uint256" },
+      { indexed: false, internalType: "uint256", name: "remainingCount", type: "uint256" },
+    ],
+    name: "RoundResolved",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, internalType: "uint256", name: "poolId", type: "uint256" },
+      { indexed: false, internalType: "uint256", name: "round", type: "uint256" },
+      { indexed: false, internalType: "uint8", name: "unanimousChoice", type: "uint8" },
+      { indexed: false, internalType: "uint256", name: "playerCount", type: "uint256" },
+    ],
+    name: "RoundRepeated",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, internalType: "uint256", name: "poolId", type: "uint256" },
+      { indexed: true, internalType: "address", name: "creator", type: "address" },
+      { indexed: false, internalType: "uint256", name: "refundAmount", type: "uint256" },
+    ],
+    name: "PoolAbandoned",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, internalType: "address", name: "creator", type: "address" },
+      { indexed: false, internalType: "uint256", name: "amount", type: "uint256" },
+    ],
+    name: "CreatorRewardClaimed",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: false, internalType: "uint256", name: "amount", type: "uint256" },
+      { indexed: false, internalType: "string", name: "source", type: "string" },
+      { indexed: false, internalType: "uint256", name: "totalPool", type: "uint256" },
+    ],
+    name: "ProjectPoolUpdated",
+    type: "event",
+  },
 
   // Read Functions
   {
