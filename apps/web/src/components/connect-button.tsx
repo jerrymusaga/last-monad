@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useAccount, useConnect, useDisconnect } from 'wagmi'
 import { useMiniApp } from '@/contexts/miniapp-context'
 import { useSmartAccount } from '@/hooks/use-smart-account'
+import { useNetworkCheck } from '@/hooks/use-network-check'
 
 export function WalletConnectButton() {
   const [mounted, setMounted] = useState(false)
@@ -19,6 +20,8 @@ export function WalletConnectButton() {
     isFarcaster,
     isSmartAccountReady
   } = useSmartAccount()
+
+  const { isCorrectNetwork } = useNetworkCheck()
 
   useEffect(() => {
     setMounted(true)
@@ -87,12 +90,17 @@ export function WalletConnectButton() {
 
   return (
     <div className="flex items-center gap-2">
-      {/* Network badge */}
+      {/* Network badge - shows warning if wrong network */}
       <button
         type="button"
-        className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-3 py-2"
+        className={`inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input h-10 px-3 py-2 ${
+          !isCorrectNetwork
+            ? "bg-yellow-50 text-yellow-700 border-yellow-300"
+            : "bg-background hover:bg-accent hover:text-accent-foreground"
+        }`}
+        title={!isCorrectNetwork ? "⚠️ Please switch to Monad Testnet" : "Connected to Monad Testnet"}
       >
-        Monad
+        {!isCorrectNetwork ? "⚠️ Wrong Network" : "Monad"}
       </button>
 
       {/* Smart Account indicator */}
