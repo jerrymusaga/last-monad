@@ -15,6 +15,7 @@ import { WalletConnectButton } from "@/components/connect-button"
 
 const navLinks = [
   { name: "Home", href: "/" },
+  { name: "Pools", href: "/pools" },
   { name: "Docs", href: "https://docs.monad.xyz", external: true },
 ]
 
