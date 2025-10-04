@@ -96,6 +96,27 @@ export default function CreatePoolPage() {
     );
   }
 
+  // Redirect to stake page if user hasn't staked
+  if (!hasStaked) {
+    return (
+      <main className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 flex items-center justify-center p-4">
+        <div className="bg-yellow-900/30 border-2 border-yellow-500/50 rounded-2xl p-8 max-w-md text-center">
+          <div className="text-6xl mb-4">⚠️</div>
+          <h2 className="text-3xl font-bold text-yellow-400 mb-4">Staking Required</h2>
+          <p className="text-gray-300 mb-6">
+            You need to stake MON before creating pools. Every 2 MON staked gives you 1 pool creation right.
+          </p>
+          <button
+            onClick={() => router.push("/stake")}
+            className="bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 text-white px-8 py-4 text-lg font-bold rounded-xl transition-all hover:scale-105"
+          >
+            Go to Stake Page
+          </button>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900">
       <div className="relative overflow-hidden">
@@ -123,31 +144,6 @@ export default function CreatePoolPage() {
               Configure your game and earn 12% royalty on completion!
             </p>
           </div>
-
-          {/* Staking Requirement Notice */}
-          {!hasStaked && (
-            <div className="bg-yellow-900/30 border-2 border-yellow-500/50 rounded-2xl p-6 mb-8">
-              <div className="flex items-start gap-4">
-                <div className="text-4xl">⚠️</div>
-                <div className="flex-1">
-                  <h3 className="text-2xl font-bold text-yellow-400 mb-2">
-                    Staking Required
-                  </h3>
-                  <p className="text-gray-300 mb-4">
-                    You need to stake <span className="text-white font-bold">2 MON</span> to
-                    create pools. This ensures creator commitment and unlocks your earning
-                    potential!
-                  </p>
-                  <button
-                    onClick={() => router.push("/stake")}
-                    className="bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 text-white px-6 py-3 rounded-lg font-bold transition-all"
-                  >
-                    Stake Now
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Configuration Form */}

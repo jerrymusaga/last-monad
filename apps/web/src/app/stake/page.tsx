@@ -10,6 +10,7 @@ export default function StakePage() {
   const router = useRouter();
   const { address, isConnected } = useAccount();
   const { isMiniAppReady } = useMiniApp();
+  const [stakeAmount, setStakeAmount] = useState(2);
   const [isStaking, setIsStaking] = useState(false);
   const [stakeComplete, setStakeComplete] = useState(false);
 
@@ -18,14 +19,19 @@ export default function StakePage() {
     address: address,
   });
 
-  const CREATOR_STAKE = "2"; // 2 MON required to become creator
+  const BASE_STAKE = 2; // 2 MON base
+  const MAX_STAKE = 200; // 200 MON max
   const hasStaked = false; // TODO: Check actual staking status
-  const currentStake = "0"; // TODO: Get actual stake amount
+  const currentStake = 0; // TODO: Get actual stake amount
 
-  const calculatePoolsEligible = () => {
-    // With 2 MON stake, creator can create unlimited pools
-    return "Unlimited";
+  const calculatePoolsEligible = (amount: number) => {
+    // Contract logic: Every 2 MON = 1 pool
+    // 2 MON = 1 pool, 4 MON = 2 pools, 6 MON = 3 pools, etc.
+    return Math.floor(amount / BASE_STAKE);
   };
+
+  const poolsEligible = calculatePoolsEligible(stakeAmount);
+  const potentialEarnings = poolsEligible * 6; // Example: 10 players × 5 MON × 12% = 6 MON per pool
 
   const handleStake = async () => {
     if (!isConnected) {
@@ -33,15 +39,15 @@ export default function StakePage() {
       return;
     }
 
-    if (!balance || parseFloat(formatEther(balance.value)) < 2) {
-      alert("Insufficient balance! You need at least 2 MON to stake.");
+    if (!balance || parseFloat(formatEther(balance.value)) < stakeAmount) {
+      alert(`Insufficient balance! You need at least ${stakeAmount} MON to stake.`);
       return;
     }
 
     setIsStaking(true);
     try {
       // TODO: Implement actual blockchain transaction
-      console.log("Staking 2 MON for creator status...");
+      console.log(`Staking ${stakeAmount} MON for creator status...`);
       await new Promise((resolve) => setTimeout(resolve, 2000));
       setStakeComplete(true);
       setTimeout(() => {
@@ -89,8 +95,11 @@ export default function StakePage() {
         <div className="bg-gradient-to-br from-green-900/40 to-emerald-900/40 border-2 border-green-500/50 rounded-2xl p-12 max-w-2xl text-center">
           <div className="text-8xl mb-6 animate-bounce">🎉</div>
           <h2 className="text-5xl font-black text-green-400 mb-4">Stake Successful!</h2>
-          <p className="text-2xl text-white mb-6">
-            You are now a verified creator!
+          <p className="text-2xl text-white mb-2">
+            You staked {stakeAmount} MON
+          </p>
+          <p className="text-xl text-purple-400 mb-6">
+            You can now create {poolsEligible} pool{poolsEligible > 1 ? "s" : ""}!
           </p>
           <p className="text-gray-300 text-lg">
             Redirecting to create your first pool...
@@ -166,41 +175,92 @@ export default function StakePage() {
               🔒 Stake MON
             </h1>
             <p className="text-xl text-gray-300">
-              Become a creator and earn royalties from your pools!
+              Stake MON to create pools and earn royalties!
             </p>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Stake Info */}
+            {/* Stake Calculator */}
             <div className="space-y-6">
               <div className="bg-gradient-to-br from-purple-900/40 to-blue-900/40 border-2 border-purple-500/50 rounded-2xl p-8 backdrop-blur-sm">
-                <h2 className="text-3xl font-bold text-white mb-6">💎 Staking Details</h2>
+                <h2 className="text-3xl font-bold text-white mb-6">🧮 Stake Calculator</h2>
 
                 <div className="space-y-6">
-                  {/* Required Stake */}
-                  <div className="bg-gray-900/50 rounded-xl p-6">
-                    <p className="text-gray-400 text-sm mb-2">Required Stake</p>
-                    <p className="text-5xl font-black text-white">
-                      {CREATOR_STAKE}{" "}
-                      <span className="text-2xl text-gray-400">MON</span>
+                  {/* Stake Amount Slider */}
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <label className="text-white font-semibold">Stake Amount</label>
+                      <span className="text-3xl font-black text-purple-400">
+                        {stakeAmount} MON
+                      </span>
+                    </div>
+
+                    <input
+                      type="range"
+                      min={BASE_STAKE}
+                      max={MAX_STAKE}
+                      step={2}
+                      value={stakeAmount}
+                      onChange={(e) => setStakeAmount(Number(e.target.value))}
+                      className="w-full h-3 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-purple-600"
+                    />
+
+                    <div className="flex justify-between text-sm text-gray-400 mt-2">
+                      <span>{BASE_STAKE} MON (Min)</span>
+                      <span>{MAX_STAKE} MON (Max)</span>
+                    </div>
+                  </div>
+
+                  {/* Quick Preset Buttons */}
+                  <div>
+                    <label className="block text-white font-semibold mb-3">⚡ Quick Presets</label>
+                    <div className="grid grid-cols-4 gap-2">
+                      {[2, 10, 20, 50].map((amount) => (
+                        <button
+                          key={amount}
+                          onClick={() => setStakeAmount(amount)}
+                          className={`py-3 px-2 rounded-lg font-bold transition-all ${
+                            stakeAmount === amount
+                              ? "bg-purple-600 text-white ring-2 ring-purple-400"
+                              : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                          }`}
+                        >
+                          {amount}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Pools Eligible */}
+                  <div className="bg-gradient-to-r from-green-900/30 to-emerald-900/30 border-2 border-green-500/50 rounded-xl p-6">
+                    <p className="text-green-400 text-sm font-medium mb-2">
+                      🎮 Pools You Can Create
+                    </p>
+                    <p className="text-6xl font-black text-white mb-3">
+                      {poolsEligible}
+                    </p>
+                    <p className="text-gray-300 text-sm">
+                      Every 2 MON staked = 1 pool creation right
                     </p>
                   </div>
 
                   {/* Your Balance */}
                   <div className="bg-gray-900/50 rounded-xl p-6">
                     <p className="text-gray-400 text-sm mb-2">Your Balance</p>
-                    <p className="text-4xl font-black text-white">
+                    <p className="text-3xl font-black text-white">
                       {balance ? parseFloat(formatEther(balance.value)).toFixed(2) : "0.00"}{" "}
-                      <span className="text-xl text-gray-400">MON</span>
+                      <span className="text-lg text-gray-400">MON</span>
                     </p>
-                  </div>
-
-                  {/* Pools Eligible */}
-                  <div className="bg-gradient-to-r from-green-900/30 to-emerald-900/30 border border-green-500/50 rounded-xl p-6">
-                    <p className="text-green-400 text-sm mb-2">Pools You Can Create</p>
-                    <p className="text-4xl font-black text-white">
-                      {calculatePoolsEligible()}
-                    </p>
+                    {balance && parseFloat(formatEther(balance.value)) >= stakeAmount && (
+                      <p className="text-green-400 text-sm mt-2 font-semibold flex items-center gap-2">
+                        ✅ Sufficient balance
+                      </p>
+                    )}
+                    {balance && parseFloat(formatEther(balance.value)) < stakeAmount && (
+                      <p className="text-red-400 text-sm mt-2 font-semibold flex items-center gap-2">
+                        ❌ Need {(stakeAmount - parseFloat(formatEther(balance.value))).toFixed(2)} more MON
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -208,21 +268,60 @@ export default function StakePage() {
               {/* Stake Button */}
               <button
                 onClick={handleStake}
-                disabled={isStaking || (balance && parseFloat(formatEther(balance.value)) < 2)}
+                disabled={isStaking || (balance && parseFloat(formatEther(balance.value)) < stakeAmount)}
                 className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:from-gray-600 disabled:to-gray-700 text-white py-6 text-2xl font-bold rounded-xl transition-all hover:scale-105 disabled:scale-100 disabled:cursor-not-allowed shadow-2xl"
               >
-                {isStaking ? "⏳ Staking..." : "🚀 Stake 2 MON"}
+                {isStaking ? "⏳ Staking..." : `🚀 Stake ${stakeAmount} MON`}
               </button>
 
-              {balance && parseFloat(formatEther(balance.value)) < 2 && (
+              {balance && parseFloat(formatEther(balance.value)) < stakeAmount && (
                 <p className="text-center text-red-400 font-semibold">
-                  ⚠️ Insufficient balance. You need at least 2 MON to stake.
+                  ⚠️ Insufficient balance. You need at least {stakeAmount} MON to stake.
                 </p>
               )}
             </div>
 
-            {/* Benefits */}
+            {/* Benefits & Earnings */}
             <div className="space-y-6">
+              {/* Potential Earnings */}
+              <div className="bg-gradient-to-br from-yellow-900/30 to-orange-900/30 border-2 border-yellow-500/50 rounded-2xl p-8">
+                <h2 className="text-3xl font-bold text-white mb-6">💰 Potential Earnings</h2>
+
+                <div className="space-y-4">
+                  <div className="bg-gray-900/50 rounded-xl p-5">
+                    <p className="text-yellow-400 text-sm mb-2">If all {poolsEligible} pools complete</p>
+                    <p className="text-4xl font-black text-white mb-2">
+                      ~{potentialEarnings} <span className="text-xl text-gray-400">MON</span>
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      Based on 10 players × 5 MON entry × 12% royalty per pool
+                    </p>
+                  </div>
+
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between py-2 border-b border-gray-700">
+                      <span className="text-gray-300">Your Stake</span>
+                      <span className="text-white font-bold">{stakeAmount} MON</span>
+                    </div>
+                    <div className="flex justify-between py-2 border-b border-gray-700">
+                      <span className="text-gray-300">Pools Eligible</span>
+                      <span className="text-purple-400 font-bold">{poolsEligible}</span>
+                    </div>
+                    <div className="flex justify-between py-2 border-b border-gray-700">
+                      <span className="text-gray-300">Royalty Per Pool</span>
+                      <span className="text-green-400 font-bold">12%</span>
+                    </div>
+                    <div className="flex justify-between py-2">
+                      <span className="text-gray-300">Potential ROI</span>
+                      <span className="text-yellow-400 font-bold text-lg">
+                        {((potentialEarnings / stakeAmount) * 100).toFixed(0)}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Creator Benefits */}
               <div className="bg-gray-800/80 border-2 border-gray-700 rounded-2xl p-8 backdrop-blur-sm">
                 <h2 className="text-3xl font-bold text-white mb-6">✨ Creator Benefits</h2>
 
@@ -240,13 +339,13 @@ export default function StakePage() {
                   </div>
 
                   <div className="flex items-start gap-4 p-4 bg-purple-900/20 border border-purple-500/30 rounded-xl">
-                    <div className="text-3xl">🎨</div>
+                    <div className="text-3xl">🎮</div>
                     <div>
                       <h3 className="text-white font-bold text-lg mb-1">
-                        Unlimited Pools
+                        Scalable Staking
                       </h3>
                       <p className="text-gray-300 text-sm">
-                        Create as many pools as you want with just one stake
+                        Stake more to create more pools: 2 MON = 1 pool, up to 200 MON max
                       </p>
                     </div>
                   </div>
@@ -270,19 +369,7 @@ export default function StakePage() {
                         Unstake Anytime
                       </h3>
                       <p className="text-gray-300 text-sm">
-                        Withdraw your stake anytime (with penalty if you have active pools)
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-4 p-4 bg-orange-900/20 border border-orange-500/30 rounded-xl">
-                    <div className="text-3xl">👑</div>
-                    <div>
-                      <h3 className="text-white font-bold text-lg mb-1">
-                        Creator Badge
-                      </h3>
-                      <p className="text-gray-300 text-sm">
-                        Get a verified creator badge on your profile
+                        Withdraw your stake anytime (30% penalty if pools are incomplete)
                       </p>
                     </div>
                   </div>
@@ -295,49 +382,25 @@ export default function StakePage() {
                 <ol className="space-y-3 text-sm text-gray-300">
                   <li className="flex items-start gap-3">
                     <span className="text-blue-400 font-bold">1.</span>
-                    <span>Stake 2 MON to become a verified creator</span>
+                    <span>Choose stake amount (2-200 MON, multiples of 2)</span>
                   </li>
                   <li className="flex items-start gap-3">
                     <span className="text-blue-400 font-bold">2.</span>
-                    <span>Create pools with custom entry fees and player limits</span>
+                    <span>Every 2 MON gives you 1 pool creation right</span>
                   </li>
                   <li className="flex items-start gap-3">
                     <span className="text-blue-400 font-bold">3.</span>
-                    <span>Players join your pool by paying the entry fee</span>
+                    <span>Create pools with custom entry fees and player limits</span>
                   </li>
                   <li className="flex items-start gap-3">
                     <span className="text-blue-400 font-bold">4.</span>
-                    <span>Game runs until there's one winner</span>
+                    <span>Earn 12% royalty when each pool completes</span>
                   </li>
                   <li className="flex items-start gap-3">
                     <span className="text-blue-400 font-bold">5.</span>
-                    <span>Automatically earn 12% royalty when pool completes</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <span className="text-blue-400 font-bold">6.</span>
-                    <span>Unstake anytime to get your 2 MON back</span>
+                    <span>Unstake to get your MON back plus all royalties</span>
                   </li>
                 </ol>
-              </div>
-
-              {/* Example Calculation */}
-              <div className="bg-gradient-to-br from-yellow-900/30 to-orange-900/30 border border-yellow-500/50 rounded-xl p-6">
-                <h3 className="text-xl font-bold text-yellow-400 mb-4">
-                  💡 Example Earnings
-                </h3>
-                <div className="space-y-3 text-sm text-gray-300">
-                  <p className="font-semibold text-white">
-                    Pool: 10 players × 5 MON entry = 50 MON total
-                  </p>
-                  <div className="flex justify-between py-2 border-b border-gray-700">
-                    <span>Winner gets (88%)</span>
-                    <span className="text-green-400 font-bold">44 MON</span>
-                  </div>
-                  <div className="flex justify-between py-2">
-                    <span>Your royalty (12%)</span>
-                    <span className="text-yellow-400 font-bold text-lg">6 MON 🎉</span>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
