@@ -1,130 +1,137 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useAccount } from "wagmi";
 import { useMiniApp } from "@/contexts/miniapp-context";
-
-type PoolStatus = "active" | "ongoing" | "completed";
-type Choice = "heads" | "tails" | null;
-
-interface Player {
-  address: string;
-  choice: Choice;
-  isEliminated: boolean;
-  round: number;
-}
-
-interface Round {
-  roundNumber: number;
-  headsCount: number;
-  tailsCount: number;
-  eliminatedPlayers: string[];
-  winningChoice: Choice;
-}
-
-interface PoolDetail {
-  id: string;
-  creator: string;
-  entryFee: string;
-  currentPlayers: number;
-  maxPlayers: number;
-  prizePool: string;
-  status: PoolStatus;
-  currentRound: number;
-  players: Player[];
-  rounds: Round[];
-  winner: string | null;
-  createdAt: number;
-}
+import { useEnvioGameDetails } from "@/hooks/envio";
+import { formatEther } from "viem";
+import { useJoinPool } from "@/hooks/use-last-monad";
 
 export default function PoolDetailPage() {
   const router = useRouter();
   const params = useParams();
   const { address, isConnected } = useAccount();
   const { isMiniAppReady } = useMiniApp();
-  const [selectedChoice, setSelectedChoice] = useState<Choice>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const poolId = params.id as string;
+  const poolIdBigInt = BigInt(poolId);
 
-  // TODO: Replace with actual blockchain data fetching
-  const mockPoolDetail: PoolDetail = {
-    id: poolId,
-    creator: "0x1234...5678",
-    entryFee: "1",
-    currentPlayers: 8,
-    maxPlayers: 10,
-    prizePool: "8.8",
-    status: "active",
-    currentRound: 0,
-    players: [
-      { address: "0xaaa1...1111", choice: null, isEliminated: false, round: 0 },
-      { address: "0xbbb2...2222", choice: null, isEliminated: false, round: 0 },
-      { address: "0xccc3...3333", choice: null, isEliminated: false, round: 0 },
-      { address: "0xddd4...4444", choice: null, isEliminated: false, round: 0 },
-      { address: "0xeee5...5555", choice: null, isEliminated: false, round: 0 },
-      { address: "0xfff6...6666", choice: null, isEliminated: false, round: 0 },
-      { address: "0x1117...7777", choice: null, isEliminated: false, round: 0 },
-      { address: "0x2228...8888", choice: null, isEliminated: false, round: 0 },
-    ],
-    rounds: [],
-    winner: null,
-    createdAt: Date.now() - 3600000,
-  };
+  // Fetch game data from Envio
+  const { data: gameData, isLoading, error: queryError, refetch: refetchGame } = useEnvioGameDetails(poolId);
 
-  const [pool, setPool] = useState<PoolDetail>(mockPoolDetail);
+  // Contract write hooks
+  const { joinPool, isPending: isJoining, isSuccess: joinSuccess, error: joinError } = useJoinPool();
 
-  const isPlayerInPool = pool.players.some((p) => p.address === address);
-  const currentPlayer = pool.players.find((p) => p.address === address);
-  const activePlayers = pool.players.filter((p) => !p.isEliminated);
+  const pool = useMemo(() => {
+    if (!gameData || !gameData.Pool[0]) return null;
+    return gameData.Pool[0];
+  }, [gameData]);
+
+  // Debug logging
+  useEffect(() => {
+    console.log('Pool ID:', poolId);
+    console.log('Is Loading:', isLoading);
+    console.log('Query Error:', queryError);
+    console.log('Game Data:', gameData);
+    console.log('Pool:', pool);
+  }, [poolId, isLoading, queryError, gameData, pool]);
+
+  const players = gameData?.Player || [];
+  const activePlayers = players.filter((p) => !p.isEliminated);
+  const isPlayerInPool = players.some((p) => p.player.toLowerCase() === address?.toLowerCase());
+
+  // Redirect to game page if pool is ACTIVE (game has started)
+  useEffect(() => {
+    if (pool && pool.status === "ACTIVE") {
+      router.push(`/game/${poolId}`);
+    }
+  }, [pool, poolId, router]);
+
+  // Handle successful join with polling for indexer
+  useEffect(() => {
+    if (joinSuccess) {
+      // Immediate refetch
+      refetchGame();
+
+      // Poll a few more times to ensure indexer has caught up
+      const pollInterval = setInterval(() => {
+        refetchGame();
+      }, 2000); // Every 2 seconds
+
+      // Stop polling after 10 seconds
+      setTimeout(() => clearInterval(pollInterval), 10000);
+
+      return () => clearInterval(pollInterval);
+    }
+  }, [joinSuccess, refetchGame]);
 
   const handleJoinPool = async () => {
-    if (!isConnected) {
-      alert("Please connect your wallet first!");
+    if (!isConnected || !address || !pool) {
       return;
     }
 
-    setIsSubmitting(true);
     try {
-      // TODO: Implement actual blockchain transaction
-      console.log("Joining pool:", poolId);
-      await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate transaction
-      alert("Successfully joined pool!");
-      router.refresh();
+      joinPool(poolIdBigInt, pool.entryFee);
     } catch (error) {
       console.error("Error joining pool:", error);
-      alert("Failed to join pool");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleSubmitChoice = async () => {
-    if (!selectedChoice) {
-      alert("Please select HEADS or TAILS!");
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      // TODO: Implement actual blockchain transaction
-      console.log("Submitting choice:", selectedChoice);
-      await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate transaction
-      alert(`Choice submitted: ${selectedChoice.toUpperCase()}`);
-      setSelectedChoice(null);
-    } catch (error) {
-      console.error("Error submitting choice:", error);
-      alert("Failed to submit choice");
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
   if (!isMiniAppReady) {
     return (
       <main className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <p className="text-gray-400">Initializing...</p>
+        </div>
+      </main>
+    );
+  }
+
+  if (queryError) {
+    return (
+      <main className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900">
+        <div className="text-center max-w-md mx-auto p-6">
+          <div className="text-6xl mb-4">⚠️</div>
+          <h2 className="text-2xl font-bold text-red-400 mb-4">Error Loading Pool</h2>
+          <p className="text-gray-300 mb-4">{queryError.message}</p>
+          <button
+            onClick={() => router.push("/pools")}
+            className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-semibold"
+          >
+            Back to Pools
+          </button>
+        </div>
+      </main>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <main className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading pool #{poolId}...</p>
+        </div>
+      </main>
+    );
+  }
+
+  if (!pool) {
+    return (
+      <main className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900">
+        <div className="text-center max-w-md mx-auto p-6">
+          <div className="text-6xl mb-4">🔍</div>
+          <h2 className="text-2xl font-bold text-white mb-4">Pool Not Found</h2>
+          <p className="text-gray-300 mb-4">Pool #{poolId} doesn't exist or hasn't been indexed yet.</p>
+          <button
+            onClick={() => router.push("/pools")}
+            className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-semibold"
+          >
+            Back to Pools
+          </button>
+        </div>
       </main>
     );
   }
@@ -152,25 +159,27 @@ export default function PoolDetailPage() {
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
               <div>
                 <h1 className="text-4xl md:text-5xl font-black text-white mb-2">
-                  Pool #{pool.id}
+                  Pool #{pool.poolId.toString()}
                 </h1>
                 <p className="text-gray-400">
                   Created by{" "}
-                  <span className="text-purple-400 font-mono">{pool.creator}</span>
+                  <span className="text-purple-400 font-mono">
+                    {pool.creator.slice(0, 6)}...{pool.creator.slice(-4)}
+                  </span>
                 </p>
               </div>
               <div
                 className={`px-4 py-2 rounded-xl font-bold text-lg ${
-                  pool.status === "active"
+                  pool.status === "OPENED"
                     ? "bg-green-500/20 text-green-400 border-2 border-green-500/50"
-                    : pool.status === "ongoing"
+                    : pool.status === "ACTIVE"
                     ? "bg-yellow-500/20 text-yellow-400 border-2 border-yellow-500/50"
                     : "bg-gray-500/20 text-gray-400 border-2 border-gray-500/50"
                 }`}
               >
-                {pool.status === "active" && "🟢 ACCEPTING PLAYERS"}
-                {pool.status === "ongoing" && "⚔️ GAME IN PROGRESS"}
-                {pool.status === "completed" && "🏆 COMPLETED"}
+                {pool.status === "OPENED" && "🟢 ACCEPTING PLAYERS"}
+                {pool.status === "ACTIVE" && "⚔️ GAME IN PROGRESS"}
+                {pool.status === "COMPLETED" && "🏆 COMPLETED"}
               </div>
             </div>
 
@@ -180,19 +189,19 @@ export default function PoolDetailPage() {
                 <div className="text-center">
                   <p className="text-yellow-400 text-sm font-medium mb-2">💰 Prize Pool</p>
                   <p className="text-4xl font-black text-white">
-                    {pool.prizePool} <span className="text-xl text-gray-400">MON</span>
+                    {parseFloat(formatEther(pool.prizePool)).toFixed(2)} <span className="text-xl text-gray-400">MON</span>
                   </p>
                 </div>
                 <div className="text-center">
                   <p className="text-yellow-400 text-sm font-medium mb-2">🎟️ Entry Fee</p>
                   <p className="text-4xl font-black text-white">
-                    {pool.entryFee} <span className="text-xl text-gray-400">MON</span>
+                    {parseFloat(formatEther(pool.entryFee)).toFixed(2)} <span className="text-xl text-gray-400">MON</span>
                   </p>
                 </div>
                 <div className="text-center">
                   <p className="text-yellow-400 text-sm font-medium mb-2">👥 Players</p>
                   <p className="text-4xl font-black text-white">
-                    {pool.currentPlayers}/{pool.maxPlayers}
+                    {pool.currentPlayers.toString()}/{pool.maxPlayers.toString()}
                   </p>
                 </div>
               </div>
@@ -202,110 +211,73 @@ export default function PoolDetailPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Main Game Area */}
             <div className="lg:col-span-2 space-y-8">
-              {/* Join Pool / Make Choice */}
-              {pool.status === "active" && !isPlayerInPool && (
-                <div className="bg-gradient-to-br from-purple-900/40 to-blue-900/40 border-2 border-purple-500/50 rounded-2xl p-8">
-                  <h2 className="text-3xl font-bold text-white mb-4">🎮 Join This Pool</h2>
-                  <p className="text-gray-300 mb-6">
-                    Entry Fee: <span className="text-white font-bold">{pool.entryFee} MON</span>
+              {/* Join Pool Button for OPENED pools */}
+              {pool.status === "OPENED" && !isPlayerInPool && !joinSuccess && (
+                <div className="bg-gradient-to-br from-green-900/40 to-emerald-900/40 border-2 border-green-500/50 rounded-2xl p-8 text-center">
+                  <div className="text-6xl mb-4">🎮</div>
+                  <h2 className="text-3xl font-bold text-white mb-4">Join This Pool!</h2>
+                  <p className="text-gray-300 text-lg mb-6">
+                    Entry Fee: <span className="text-green-400 font-bold">{parseFloat(formatEther(pool.entryFee)).toFixed(2)} MON</span>
+                  </p>
+                  <p className="text-gray-400 mb-6">
+                    {pool.currentPlayers.toString()}/{pool.maxPlayers.toString()} players joined
                   </p>
                   <button
                     onClick={handleJoinPool}
-                    disabled={isSubmitting || !isConnected}
-                    className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:from-gray-600 disabled:to-gray-700 text-white py-4 text-xl font-bold rounded-xl transition-all hover:scale-105 disabled:scale-100 disabled:cursor-not-allowed"
+                    disabled={isJoining}
+                    className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 disabled:from-gray-600 disabled:to-gray-700 text-white py-5 text-2xl font-bold rounded-xl transition-all hover:scale-105 disabled:scale-100"
                   >
-                    {isSubmitting ? "⏳ Joining..." : "🎯 Join Pool"}
+                    {isJoining ? "⏳ Confirm in wallet..." : "🎮 Join Pool"}
                   </button>
+
+                  {joinError && (
+                    <div className="mt-4 bg-red-900/30 border border-red-500/50 rounded-lg p-4">
+                      <p className="text-red-400 text-sm font-semibold">
+                        ⚠️ Failed to join pool
+                      </p>
+                      <p className="text-red-300 text-xs mt-1">
+                        {joinError.message}
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
 
-              {pool.status === "ongoing" && isPlayerInPool && !currentPlayer?.isEliminated && (
-                <div className="bg-gradient-to-br from-blue-900/40 to-purple-900/40 border-2 border-blue-500/50 rounded-2xl p-8">
-                  <h2 className="text-3xl font-bold text-white mb-4">
-                    🎯 Round {pool.currentRound + 1}
-                  </h2>
-                  <p className="text-gray-300 mb-6">
-                    Choose HEADS or TAILS. The <span className="text-green-400 font-bold">minority</span> survives!
+              {/* Joining Success Message - shown while waiting for indexer */}
+              {pool.status === "OPENED" && !isPlayerInPool && joinSuccess && (
+                <div className="bg-gradient-to-br from-green-900/40 to-emerald-900/40 border-2 border-green-500/50 rounded-2xl p-12 text-center">
+                  <div className="text-8xl mb-6 animate-bounce">🎉</div>
+                  <h2 className="text-4xl font-black text-green-400 mb-4">Successfully Joined!</h2>
+                  <p className="text-gray-300 text-lg mb-4">
+                    Your transaction has been confirmed on the blockchain.
                   </p>
-
-                  <div className="grid grid-cols-2 gap-4 mb-6">
-                    <button
-                      onClick={() => setSelectedChoice("heads")}
-                      className={`py-8 rounded-xl text-2xl font-bold transition-all ${
-                        selectedChoice === "heads"
-                          ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white scale-105 ring-4 ring-blue-400"
-                          : "bg-gray-800 text-gray-300 hover:bg-gray-700"
-                      }`}
-                    >
-                      🪙 HEADS
-                    </button>
-                    <button
-                      onClick={() => setSelectedChoice("tails")}
-                      className={`py-8 rounded-xl text-2xl font-bold transition-all ${
-                        selectedChoice === "tails"
-                          ? "bg-gradient-to-r from-purple-600 to-purple-700 text-white scale-105 ring-4 ring-purple-400"
-                          : "bg-gray-800 text-gray-300 hover:bg-gray-700"
-                      }`}
-                    >
-                      🎲 TAILS
-                    </button>
+                  <div className="flex items-center justify-center gap-3 text-yellow-400 mb-6">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-yellow-400"></div>
+                    <p className="text-lg font-semibold">Updating pool data...</p>
                   </div>
-
-                  <button
-                    onClick={handleSubmitChoice}
-                    disabled={!selectedChoice || isSubmitting}
-                    className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 disabled:from-gray-600 disabled:to-gray-700 text-white py-4 text-xl font-bold rounded-xl transition-all hover:scale-105 disabled:scale-100 disabled:cursor-not-allowed"
-                  >
-                    {isSubmitting ? "⏳ Submitting..." : "✅ Submit Choice"}
-                  </button>
-                </div>
-              )}
-
-              {pool.status === "completed" && pool.winner && (
-                <div className="bg-gradient-to-br from-yellow-900/40 to-orange-900/40 border-2 border-yellow-500/50 rounded-2xl p-8 text-center">
-                  <div className="text-6xl mb-4 animate-bounce">🎉</div>
-                  <h2 className="text-4xl font-black text-yellow-400 mb-4">
-                    WINNER!
-                  </h2>
-                  <p className="text-2xl text-white font-bold font-mono mb-4">
-                    {pool.winner}
-                  </p>
-                  <p className="text-xl text-gray-300">
-                    Won <span className="text-yellow-400 font-bold">{pool.prizePool} MON</span>
+                  <p className="text-gray-400 text-sm">
+                    This usually takes 2-4 seconds. The page will update automatically.
                   </p>
                 </div>
               )}
 
-              {/* Round History */}
-              {pool.rounds.length > 0 && (
-                <div className="bg-gray-800/50 border border-gray-700 rounded-2xl p-6">
-                  <h3 className="text-2xl font-bold text-white mb-4">📜 Round History</h3>
-                  <div className="space-y-4">
-                    {pool.rounds.map((round) => (
-                      <div
-                        key={round.roundNumber}
-                        className="bg-gray-900/50 border border-gray-600 rounded-xl p-4"
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-white font-bold">Round {round.roundNumber}</span>
-                          <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                            round.winningChoice === "heads"
-                              ? "bg-blue-500/20 text-blue-400"
-                              : "bg-purple-500/20 text-purple-400"
-                          }`}>
-                            {round.winningChoice === "heads" ? "🪙 HEADS" : "🎲 TAILS"} Won
-                          </span>
-                        </div>
-                        <div className="text-sm text-gray-400 space-y-1">
-                          <p>🪙 Heads: {round.headsCount} players</p>
-                          <p>🎲 Tails: {round.tailsCount} players</p>
-                          <p className="text-red-400">
-                            ❌ Eliminated: {round.eliminatedPlayers.length} players
-                          </p>
-                        </div>
-                      </div>
-                    ))}
+              {/* Waiting for game to start - player has joined but game not active yet */}
+              {pool.status === "OPENED" && isPlayerInPool && (
+                <div className="bg-gradient-to-br from-blue-900/40 to-purple-900/40 border-2 border-blue-500/50 rounded-2xl p-8 text-center">
+                  <div className="text-6xl mb-4">⏳</div>
+                  <h2 className="text-3xl font-bold text-white mb-4">Waiting for Players...</h2>
+                  <p className="text-gray-300 text-lg mb-6">
+                    You're in! The game will start when enough players join.
+                  </p>
+                  <div className="bg-gray-800/50 rounded-xl p-5 mb-4">
+                    <p className="text-gray-400 text-sm mb-2">Current Players</p>
+                    <p className="text-4xl font-black text-white">
+                      {pool.currentPlayers.toString()}/{pool.maxPlayers.toString()}
+                    </p>
                   </div>
+                  <p className="text-gray-400 text-sm">
+                    The game will automatically start when the pool is full or the creator activates it.
+                  </p>
                 </div>
               )}
             </div>
@@ -315,26 +287,23 @@ export default function PoolDetailPage() {
               {/* Active Players */}
               <div className="bg-gray-800/50 border border-gray-700 rounded-2xl p-6">
                 <h3 className="text-xl font-bold text-white mb-4">
-                  👥 Active Players ({activePlayers.length})
+                  👥 Players ({players.length})
                 </h3>
                 <div className="space-y-2 max-h-96 overflow-y-auto">
-                  {activePlayers.map((player) => (
+                  {players.map((player) => (
                     <div
-                      key={player.address}
+                      key={player.id}
                       className={`flex items-center justify-between p-3 rounded-lg ${
-                        player.address === address
+                        player.player.toLowerCase() === address?.toLowerCase()
                           ? "bg-purple-900/40 border border-purple-500/50"
                           : "bg-gray-900/50"
                       }`}
                     >
                       <span className="text-gray-300 font-mono text-sm">
-                        {player.address === address ? "You" : player.address}
+                        {player.player.toLowerCase() === address?.toLowerCase()
+                          ? "You"
+                          : `${player.player.slice(0, 6)}...${player.player.slice(-4)}`}
                       </span>
-                      {player.choice && (
-                        <span className="text-xs px-2 py-1 bg-green-500/20 text-green-400 rounded">
-                          ✓
-                        </span>
-                      )}
                     </div>
                   ))}
                 </div>
@@ -357,18 +326,14 @@ export default function PoolDetailPage() {
                 <h3 className="text-xl font-bold text-white mb-4">📊 Pool Stats</h3>
                 <div className="space-y-3 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-400">Current Round</span>
-                    <span className="text-white font-bold">{pool.currentRound}</span>
+                    <span className="text-gray-400">Total Players</span>
+                    <span className="text-white font-bold">{pool.currentPlayers.toString()}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-400">Eliminated</span>
-                    <span className="text-red-400 font-bold">
-                      {pool.players.filter((p) => p.isEliminated).length}
+                    <span className="text-gray-400">Slots Available</span>
+                    <span className="text-green-400 font-bold">
+                      {(Number(pool.maxPlayers) - Number(pool.currentPlayers))}
                     </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Remaining</span>
-                    <span className="text-green-400 font-bold">{activePlayers.length}</span>
                   </div>
                 </div>
               </div>

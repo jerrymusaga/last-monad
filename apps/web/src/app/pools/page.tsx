@@ -1,22 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useAccount } from "wagmi";
 import { useMiniApp } from "@/contexts/miniapp-context";
+import { useEnvioAllPools, useEnvioGlobalStats } from "@/hooks/envio";
+import { formatEther } from "viem";
 
-type PoolStatus = "active" | "ongoing" | "completed";
-
-interface Pool {
-  id: string;
-  creator: string;
-  entryFee: string;
-  currentPlayers: number;
-  maxPlayers: number;
-  prizePool: string;
-  status: PoolStatus;
-  createdAt: number;
-}
+type PoolStatus = "OPENED" | "ACTIVE" | "COMPLETED" | "ABANDONED";
 
 export default function PoolsPage() {
   const router = useRouter();
@@ -25,74 +16,74 @@ export default function PoolsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<PoolStatus | "all">("all");
 
-  // TODO: Replace with actual blockchain data fetching
-  const mockPools: Pool[] = [
-    {
-      id: "1",
-      creator: "0x1234...5678",
-      entryFee: "1",
-      currentPlayers: 8,
-      maxPlayers: 10,
-      prizePool: "8",
-      status: "active",
-      createdAt: Date.now() - 3600000,
-    },
-    {
-      id: "2",
-      creator: "0xabcd...efgh",
-      entryFee: "2",
-      currentPlayers: 15,
-      maxPlayers: 20,
-      prizePool: "30",
-      status: "ongoing",
-      createdAt: Date.now() - 7200000,
-    },
-    {
-      id: "3",
-      creator: "0x9876...4321",
-      entryFee: "1",
-      currentPlayers: 10,
-      maxPlayers: 10,
-      prizePool: "8.8",
-      status: "completed",
-      createdAt: Date.now() - 86400000,
-    },
-  ];
+  // Fetch pools and stats from Envio
+  const { data: pools, isLoading: poolsLoading } = useEnvioAllPools(100);
+  const { data: globalStats } = useEnvioGlobalStats();
 
-  const filteredPools = mockPools.filter((pool) => {
-    const matchesSearch =
-      pool.creator.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      pool.id.includes(searchQuery);
-    const matchesStatus = statusFilter === "all" || pool.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  // Filter pools based on search and status
+  const filteredPools = useMemo(() => {
+    if (!pools) return [];
+
+    return pools.filter((pool) => {
+      const matchesSearch =
+        pool.creator.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        pool.poolId.toString().includes(searchQuery);
+      const matchesStatus = statusFilter === "all" || pool.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [pools, searchQuery, statusFilter]);
+
+  // Calculate stats
+  const activePools = pools?.filter((p) => p.status === "OPENED").length || 0;
+  const ongoingGames = pools?.filter((p) => p.status === "ACTIVE").length || 0;
+  const totalLocked = pools?.reduce((sum, p) => sum + BigInt(p.prizePool), 0n) || 0n;
 
   const getStatusColor = (status: PoolStatus) => {
     switch (status) {
-      case "active":
+      case "OPENED":
         return "bg-green-500/20 text-green-400 border-green-500/50";
-      case "ongoing":
+      case "ACTIVE":
         return "bg-yellow-500/20 text-yellow-400 border-yellow-500/50";
-      case "completed":
+      case "COMPLETED":
+        return "bg-blue-500/20 text-blue-400 border-blue-500/50";
+      case "ABANDONED":
         return "bg-gray-500/20 text-gray-400 border-gray-500/50";
     }
   };
 
   const getStatusEmoji = (status: PoolStatus) => {
     switch (status) {
-      case "active":
+      case "OPENED":
         return "🟢";
-      case "ongoing":
+      case "ACTIVE":
         return "⚔️";
-      case "completed":
+      case "COMPLETED":
         return "🏆";
+      case "ABANDONED":
+        return "🚫";
+    }
+  };
+
+  const getStatusLabel = (status: PoolStatus) => {
+    switch (status) {
+      case "OPENED":
+        return "Active";
+      case "ACTIVE":
+        return "Ongoing";
+      case "COMPLETED":
+        return "Completed";
+      case "ABANDONED":
+        return "Abandoned";
     }
   };
 
   if (!isMiniAppReady) {
     return (
       <main className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <p className="text-gray-400">Initializing...</p>
+        </div>
       </main>
     );
   }
@@ -121,19 +112,19 @@ export default function PoolsPage() {
           <div className="mb-8 grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-6 text-center">
               <p className="text-4xl font-black text-green-400 mb-2">
-                {mockPools.filter((p) => p.status === "active").length}
+                {activePools}
               </p>
               <p className="text-gray-400">🟢 Active Pools</p>
             </div>
             <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-6 text-center">
               <p className="text-4xl font-black text-yellow-400 mb-2">
-                {mockPools.filter((p) => p.status === "ongoing").length}
+                {ongoingGames}
               </p>
               <p className="text-gray-400">⚔️ Ongoing Games</p>
             </div>
             <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-6 text-center">
               <p className="text-4xl font-black text-purple-400 mb-2">
-                {mockPools.reduce((sum, p) => sum + parseFloat(p.prizePool), 0).toFixed(1)}
+                {parseFloat(formatEther(totalLocked)).toFixed(1)}
               </p>
               <p className="text-gray-400">💎 Total MON Locked</p>
             </div>
@@ -152,7 +143,7 @@ export default function PoolsPage() {
                   </p>
                 </div>
                 <button
-                  onClick={() => router.push("/create-pool")}
+                  onClick={() => router.push("/stake")}
                   className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-8 py-4 text-lg font-bold rounded-xl whitespace-nowrap transition-all hover:scale-105"
                 >
                   ➕ Create Pool
@@ -189,16 +180,39 @@ export default function PoolsPage() {
                   className="w-full bg-gray-900 border border-gray-600 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500"
                 >
                   <option value="all">All Pools</option>
-                  <option value="active">🟢 Active (Accepting Players)</option>
-                  <option value="ongoing">⚔️ Ongoing (Game Started)</option>
-                  <option value="completed">🏆 Completed</option>
+                  <option value="OPENED">🟢 Active (Accepting Players)</option>
+                  <option value="ACTIVE">⚔️ Ongoing (Game Started)</option>
+                  <option value="COMPLETED">🏆 Completed</option>
                 </select>
               </div>
             </div>
           </div>
 
           {/* Pool Grid */}
-          {filteredPools.length === 0 ? (
+          {poolsLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div
+                  key={i}
+                  className="bg-gradient-to-br from-gray-800/80 to-gray-900/80 border-2 border-gray-700 rounded-2xl p-6 backdrop-blur-sm animate-pulse"
+                >
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="h-6 w-24 bg-gray-700 rounded-full"></div>
+                    <div className="h-4 w-16 bg-gray-700 rounded"></div>
+                  </div>
+                  <div className="bg-gray-900/50 rounded-xl p-4 mb-4">
+                    <div className="h-4 w-20 bg-gray-700 rounded mb-2"></div>
+                    <div className="h-8 w-32 bg-gray-700 rounded"></div>
+                  </div>
+                  <div className="space-y-3 mb-4">
+                    <div className="h-4 w-full bg-gray-700 rounded"></div>
+                    <div className="h-4 w-3/4 bg-gray-700 rounded"></div>
+                  </div>
+                  <div className="h-10 w-full bg-gray-700 rounded-lg"></div>
+                </div>
+              ))}
+            </div>
+          ) : filteredPools.length === 0 ? (
             <div className="text-center py-20">
               <div className="text-6xl mb-4">🎲</div>
               <h3 className="text-2xl font-bold text-white mb-2">No Pools Found</h3>
@@ -213,26 +227,28 @@ export default function PoolsPage() {
               {filteredPools.map((pool) => (
                 <div
                   key={pool.id}
-                  onClick={() => router.push(`/pools/${pool.id}`)}
+                  onClick={() => router.push(`/pools/${pool.poolId}`)}
                   className="bg-gradient-to-br from-gray-800/80 to-gray-900/80 border-2 border-gray-700 hover:border-purple-500 rounded-2xl p-6 backdrop-blur-sm transition-all hover:scale-105 cursor-pointer group"
                 >
                   {/* Status Badge */}
                   <div className="flex items-center justify-between mb-4">
                     <span
                       className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-semibold border ${getStatusColor(
-                        pool.status
+                        pool.status as PoolStatus
                       )}`}
                     >
-                      {getStatusEmoji(pool.status)} {pool.status.toUpperCase()}
+                      {getStatusEmoji(pool.status as PoolStatus)}{" "}
+                      {getStatusLabel(pool.status as PoolStatus).toUpperCase()}
                     </span>
-                    <span className="text-gray-400 text-sm">Pool #{pool.id}</span>
+                    <span className="text-gray-400 text-sm">Pool #{pool.poolId.toString()}</span>
                   </div>
 
                   {/* Prize Pool */}
                   <div className="bg-gradient-to-r from-yellow-900/30 to-orange-900/30 border border-yellow-500/50 rounded-xl p-4 mb-4">
                     <p className="text-yellow-400 text-sm font-medium mb-1">💰 Prize Pool</p>
                     <p className="text-3xl font-black text-white">
-                      {pool.prizePool} <span className="text-lg text-gray-400">MON</span>
+                      {parseFloat(formatEther(pool.prizePool)).toFixed(2)}{" "}
+                      <span className="text-lg text-gray-400">MON</span>
                     </p>
                   </div>
 
@@ -240,13 +256,15 @@ export default function PoolsPage() {
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-gray-400 text-sm">Entry Fee</span>
-                      <span className="text-white font-bold">{pool.entryFee} MON</span>
+                      <span className="text-white font-bold">
+                        {parseFloat(formatEther(pool.entryFee)).toFixed(2)} MON
+                      </span>
                     </div>
 
                     <div className="flex items-center justify-between">
                       <span className="text-gray-400 text-sm">Players</span>
                       <span className="text-white font-bold">
-                        {pool.currentPlayers}/{pool.maxPlayers}
+                        {pool.currentPlayers.toString()}/{pool.maxPlayers.toString()}
                       </span>
                     </div>
 
@@ -255,7 +273,7 @@ export default function PoolsPage() {
                       <div
                         className="bg-gradient-to-r from-purple-600 to-blue-600 h-full transition-all"
                         style={{
-                          width: `${(pool.currentPlayers / pool.maxPlayers) * 100}%`,
+                          width: `${(Number(pool.currentPlayers) / Number(pool.maxPlayers)) * 100}%`,
                         }}
                       />
                     </div>
@@ -263,16 +281,17 @@ export default function PoolsPage() {
                     <div className="flex items-center justify-between pt-2 border-t border-gray-700">
                       <span className="text-gray-400 text-xs">Creator</span>
                       <span className="text-purple-400 text-xs font-mono">
-                        {pool.creator}
+                        {pool.creator.slice(0, 6)}...{pool.creator.slice(-4)}
                       </span>
                     </div>
                   </div>
 
                   {/* Action Button */}
                   <button className="w-full mt-4 bg-gradient-to-r from-purple-600 to-blue-600 group-hover:from-purple-700 group-hover:to-blue-700 text-white py-3 rounded-lg font-bold transition-all">
-                    {pool.status === "active" && "🎮 Join Pool"}
-                    {pool.status === "ongoing" && "👁️ View Game"}
-                    {pool.status === "completed" && "📊 View Results"}
+                    {pool.status === "OPENED" && "🎮 Join Pool"}
+                    {pool.status === "ACTIVE" && "👁️ View Game"}
+                    {pool.status === "COMPLETED" && "📊 View Results"}
+                    {pool.status === "ABANDONED" && "⚠️ Abandoned"}
                   </button>
                 </div>
               ))}

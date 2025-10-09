@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAccount } from "wagmi";
 import { useMiniApp } from "@/contexts/miniapp-context";
-import { parseEther } from "viem";
+import { parseEther, formatEther } from "viem";
+import { useCreatePool, useCreatorInfo } from "@/hooks/use-last-monad";
 
 export default function CreatePoolPage() {
   const router = useRouter();
@@ -14,11 +15,13 @@ export default function CreatePoolPage() {
   const [entryFee, setEntryFee] = useState("1");
   const [maxPlayers, setMaxPlayers] = useState("10");
   const [description, setDescription] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // TODO: Replace with actual blockchain data
-  const creatorStake = "2"; // MON
-  const hasStaked = false; // Check if user has staked
+  // Contract hooks
+  const { creatorInfo, refetch: refetchCreator } = useCreatorInfo(address);
+  const { createPool, isPending, isConfirming, isSuccess, error } = useCreatePool();
+
+  const hasStaked = creatorInfo?.hasActiveStake ?? false;
+  const creatorStake = creatorInfo?.stakedAmount ? formatEther(creatorInfo.stakedAmount) : "0";
 
   const calculatePrizePool = () => {
     const fee = parseFloat(entryFee) || 0;
@@ -31,40 +34,39 @@ export default function CreatePoolPage() {
 
   const { totalPool, creatorReward, winnerPrize } = calculatePrizePool();
 
+  // Handle successful pool creation
+  useEffect(() => {
+    if (isSuccess) {
+      refetchCreator();
+      setTimeout(() => {
+        router.push("/dashboard");
+      }, 2000);
+    }
+  }, [isSuccess, router, refetchCreator]);
+
   const handleCreatePool = async () => {
-    if (!isConnected) {
-      alert("Please connect your wallet first!");
+    if (!isConnected || !address) {
       return;
     }
 
     if (!hasStaked) {
-      alert("You need to stake 2 MON to create pools!");
       router.push("/stake");
       return;
     }
 
-    if (parseFloat(entryFee) < 1 || parseFloat(entryFee) > 200) {
-      alert("Entry fee must be between 1 and 200 MON");
+    // Validate based on contract requirements
+    if (parseFloat(entryFee) <= 0) {
       return;
     }
 
-    if (parseInt(maxPlayers) < 2 || parseInt(maxPlayers) > 100) {
-      alert("Max players must be between 2 and 100");
+    if (parseInt(maxPlayers) < 2) {
       return;
     }
 
-    setIsSubmitting(true);
     try {
-      // TODO: Implement actual blockchain transaction
-      console.log("Creating pool:", { entryFee, maxPlayers, description });
-      await new Promise((resolve) => setTimeout(resolve, 2000)); // Simulate transaction
-      alert("Pool created successfully!");
-      router.push("/dashboard");
-    } catch (error) {
-      console.error("Error creating pool:", error);
-      alert("Failed to create pool");
-    } finally {
-      setIsSubmitting(false);
+      createPool(parseEther(entryFee), BigInt(maxPlayers));
+    } catch (err) {
+      console.error("Error creating pool:", err);
     }
   };
 
@@ -158,8 +160,7 @@ export default function CreatePoolPage() {
                   </label>
                   <input
                     type="number"
-                    min="1"
-                    max="200"
+                    min="0.01"
                     step="0.1"
                     value={entryFee}
                     onChange={(e) => setEntryFee(e.target.value)}
@@ -167,8 +168,13 @@ export default function CreatePoolPage() {
                     placeholder="1.0"
                   />
                   <p className="text-sm text-gray-400 mt-2">
-                    Min: 1 MON | Max: 200 MON
+                    Must be greater than 0 MON
                   </p>
+                  {parseFloat(entryFee) <= 0 && entryFee !== "" && (
+                    <p className="text-sm text-red-400 mt-1">
+                      ⚠️ Entry fee must be greater than 0
+                    </p>
+                  )}
                 </div>
 
                 {/* Max Players */}
@@ -179,15 +185,19 @@ export default function CreatePoolPage() {
                   <input
                     type="number"
                     min="2"
-                    max="100"
                     value={maxPlayers}
                     onChange={(e) => setMaxPlayers(e.target.value)}
                     className="w-full bg-gray-900 border border-gray-600 text-white rounded-lg px-4 py-3 text-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                     placeholder="10"
                   />
                   <p className="text-sm text-gray-400 mt-2">
-                    Min: 2 players | Max: 100 players
+                    Minimum 2 players required
                   </p>
+                  {parseInt(maxPlayers) < 2 && maxPlayers !== "" && (
+                    <p className="text-sm text-red-400 mt-1">
+                      ⚠️ Must have at least 2 players
+                    </p>
+                  )}
                 </div>
 
                 {/* Quick Presets */}
@@ -332,16 +342,48 @@ export default function CreatePoolPage() {
               {/* Create Button */}
               <button
                 onClick={handleCreatePool}
-                disabled={isSubmitting || !hasStaked}
+                disabled={
+                  isPending ||
+                  isConfirming ||
+                  !hasStaked ||
+                  parseFloat(entryFee) <= 0 ||
+                  parseInt(maxPlayers) < 2 ||
+                  entryFee === "" ||
+                  maxPlayers === ""
+                }
                 className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:from-gray-600 disabled:to-gray-700 text-white py-5 text-xl font-bold rounded-xl transition-all hover:scale-105 disabled:scale-100 disabled:cursor-not-allowed"
               >
-                {isSubmitting ? "⏳ Creating Pool..." : "🚀 Create Pool"}
+                {isPending ? "⏳ Confirm in wallet..." : isConfirming ? "⏳ Creating..." : "🚀 Create Pool"}
               </button>
 
+              {error && (
+                <div className="bg-red-900/30 border border-red-500/50 rounded-lg p-4">
+                  <p className="text-red-400 text-sm font-semibold">
+                    ⚠️ Transaction failed
+                  </p>
+                  <p className="text-red-300 text-xs mt-1">
+                    {error.message}
+                  </p>
+                </div>
+              )}
+
               {!hasStaked && (
-                <p className="text-center text-yellow-400 text-sm">
-                  ⚠️ You must stake 2 MON before creating pools
-                </p>
+                <div className="bg-yellow-900/30 border border-yellow-500/50 rounded-lg p-4">
+                  <p className="text-yellow-400 text-sm font-semibold">
+                    ⚠️ Staking required
+                  </p>
+                  <p className="text-yellow-300 text-xs mt-1">
+                    You must stake MON before creating pools
+                  </p>
+                </div>
+              )}
+
+              {isSuccess && (
+                <div className="bg-green-900/30 border border-green-500/50 rounded-lg p-4">
+                  <p className="text-green-400 text-sm font-semibold">
+                    ✅ Pool created successfully! Redirecting...
+                  </p>
+                </div>
               )}
             </div>
           </div>

@@ -1,48 +1,61 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAccount } from "wagmi";
 import { useMiniApp } from "@/contexts/miniapp-context";
+import { formatEther } from "viem";
+import {
+  useUnstakeAndClaim,
+  useCreatorInfo,
+  useAreAllPoolsCompleted,
+  useCalculateCreatorReward,
+} from "@/hooks/use-last-monad";
 
 export default function UnstakePage() {
   const router = useRouter();
   const { address, isConnected } = useAccount();
   const { isMiniAppReady } = useMiniApp();
   const [showConfirmation, setShowConfirmation] = useState(false);
-  const [isUnstaking, setIsUnstaking] = useState(false);
-  const [unstakeComplete, setUnstakeComplete] = useState(false);
 
-  // TODO: Replace with actual blockchain data
-  const stakedAmount = "2";
-  const totalEarnings = "15.6";
-  const activePools = 2;
-  const completedPools = 3;
-  const pendingRewards = "2.4";
+  // Contract hooks
+  const { creatorInfo, refetch: refetchCreator } = useCreatorInfo(address);
+  const { allPoolsCompleted } = useAreAllPoolsCompleted(address);
+  const { totalReward } = useCalculateCreatorReward(address);
+  const { unstake, isPending, isConfirming, isSuccess, error } = useUnstakeAndClaim();
 
-  // Calculate penalty
-  const hasPenalty = activePools > 0;
-  const penaltyPercentage = 10; // 10% penalty for unstaking with active pools
-  const penaltyAmount = hasPenalty
-    ? (parseFloat(stakedAmount) * penaltyPercentage) / 100
-    : 0;
-  const unstakeAmount = parseFloat(stakedAmount) - penaltyAmount;
+  const stakedAmount = creatorInfo?.stakedAmount ? parseFloat(formatEther(creatorInfo.stakedAmount)) : 0;
+  const totalEarnings = totalReward ? parseFloat(formatEther(totalReward)) : 0;
+  const activePools = creatorInfo ? creatorInfo.poolsCreated - creatorInfo.poolsRemaining : 0;
+  const completedPools = Number(creatorInfo?.poolsRemaining || 0n);
+  const pendingRewards = totalEarnings;
 
-  const handleUnstake = async () => {
-    setIsUnstaking(true);
-    try {
-      // TODO: Implement actual blockchain transaction
-      console.log("Unstaking MON...");
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      setUnstakeComplete(true);
+  // Calculate penalty (30% for incomplete pools per contract)
+  const hasPenalty = !allPoolsCompleted;
+  const penaltyPercentage = 30;
+  const penaltyAmount = hasPenalty ? (stakedAmount * penaltyPercentage) / 100 : 0;
+  const unstakeAmount = stakedAmount - penaltyAmount + totalEarnings;
+
+  // Handle successful unstake
+  useEffect(() => {
+    if (isSuccess) {
+      refetchCreator();
       setTimeout(() => {
         router.push("/dashboard");
       }, 3000);
-    } catch (error) {
-      console.error("Error unstaking:", error);
-      alert("Failed to unstake MON");
-    } finally {
-      setIsUnstaking(false);
+    }
+  }, [isSuccess, router, refetchCreator]);
+
+  const handleUnstake = async () => {
+    if (!isConnected || !address) {
+      return;
+    }
+
+    try {
+      unstake();
+      setShowConfirmation(false);
+    } catch (err) {
+      console.error("Error unstaking:", err);
     }
   };
 
@@ -74,7 +87,7 @@ export default function UnstakePage() {
     );
   }
 
-  if (unstakeComplete) {
+  if (isSuccess) {
     return (
       <main className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 flex items-center justify-center p-4">
         <div className="bg-gradient-to-br from-green-900/40 to-emerald-900/40 border-2 border-green-500/50 rounded-2xl p-12 max-w-2xl text-center">
@@ -85,7 +98,7 @@ export default function UnstakePage() {
           </p>
           {hasPenalty && (
             <p className="text-gray-300 text-lg">
-              (Penalty: {penaltyAmount.toFixed(2)} MON for active pools)
+              (Penalty: {penaltyAmount.toFixed(2)} MON for incomplete pools)
             </p>
           )}
           <p className="text-gray-400 mt-6">Redirecting to dashboard...</p>
@@ -334,19 +347,26 @@ export default function UnstakePage() {
               </div>
             </div>
 
+            {error && (
+              <p className="text-center text-red-400 text-sm mb-4">
+                ⚠️ Error: {error.message}
+              </p>
+            )}
+
             <div className="grid grid-cols-2 gap-4">
               <button
                 onClick={() => setShowConfirmation(false)}
-                className="bg-gray-700 hover:bg-gray-600 text-white py-3 rounded-lg font-bold transition-all"
+                disabled={isPending || isConfirming}
+                className="bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 text-white py-3 rounded-lg font-bold transition-all"
               >
                 Cancel
               </button>
               <button
                 onClick={handleUnstake}
-                disabled={isUnstaking}
+                disabled={isPending || isConfirming}
                 className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 disabled:from-gray-600 disabled:to-gray-700 text-white py-3 rounded-lg font-bold transition-all disabled:cursor-not-allowed"
               >
-                {isUnstaking ? "⏳ Unstaking..." : "Confirm"}
+                {isPending ? "⏳ Confirm in wallet..." : isConfirming ? "⏳ Confirming..." : "Confirm"}
               </button>
             </div>
           </div>

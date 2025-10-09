@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/sheet"
 import { WalletConnectButton } from "@/components/connect-button"
 
-const navLinks = [
+const navLinks: Array<{ name: string; href: string; external?: boolean }> = [
   { name: "Home", href: "/" },
   { name: "Pools", href: "/pools" },
   { name: "Dashboard", href: "/dashboard" },

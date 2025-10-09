@@ -1,11 +1,14 @@
 import { LAST_MONAD_ABI } from "./lastMonadABI";
 
-// TODO: Replace with actual deployed contract address
-export const LAST_MONAD_ADDRESS = "0x0000000000000000000000000000000000000000" as `0x${string}`;
+export const LAST_MONAD_ADDRESS = "0x36A89CDeC4911af8DFfaf8c0D5e4E96008249E9D" as `0x${string}`;
+
+// Monad Testnet Chain ID
+export const MONAD_TESTNET_CHAIN_ID = 10143;
 
 export const lastMonadConfig = {
   address: LAST_MONAD_ADDRESS,
   abi: LAST_MONAD_ABI,
+  chainId: MONAD_TESTNET_CHAIN_ID,
 } as const;
 
 // Player choice enum matches contract

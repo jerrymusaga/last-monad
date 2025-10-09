@@ -4,30 +4,13 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAccount } from "wagmi";
 import { useMiniApp } from "@/contexts/miniapp-context";
-
-type PoolStatus = "waiting" | "active" | "completed";
-
-interface CreatedPool {
-  id: string;
-  entryFee: string;
-  currentPlayers: number;
-  maxPlayers: number;
-  prizePool: string;
-  status: PoolStatus;
-  creatorReward: string;
-  isActivated: boolean;
-}
-
-interface JoinedPool {
-  id: string;
-  entryFee: string;
-  totalPlayers: number;
-  status: PoolStatus;
-  currentRound: number;
-  isEliminated: boolean;
-  isWinner: boolean;
-  prize: string;
-}
+import {
+  useEnvioCreatorStats,
+  useEnvioCreatorPools,
+  useEnvioPlayerHistory,
+} from "@/hooks/envio";
+import { formatEther } from "viem";
+import { useActivatePool, useClaimPrize } from "@/hooks/use-last-monad";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -35,97 +18,51 @@ export default function DashboardPage() {
   const { isMiniAppReady } = useMiniApp();
   const [activeTab, setActiveTab] = useState<"created" | "joined">("created");
 
-  // TODO: Replace with actual blockchain data
-  const hasStaked = true;
-  const stakedAmount = "2";
-  const totalEarnings = "15.6";
-  const totalPoolsCreated = 3;
-  const completedPools = 1;
+  // Fetch data from Envio
+  const { data: creatorStats, isLoading: creatorLoading } = useEnvioCreatorStats(address);
+  const { data: createdPoolsData, isLoading: poolsLoading } = useEnvioCreatorPools(address);
+  const { data: playerHistory, isLoading: historyLoading } = useEnvioPlayerHistory(address);
 
-  const createdPools: CreatedPool[] = [
-    {
-      id: "1",
-      entryFee: "1",
-      currentPlayers: 10,
-      maxPlayers: 10,
-      prizePool: "8.8",
-      status: "completed",
-      creatorReward: "1.2",
-      isActivated: true,
-    },
-    {
-      id: "2",
-      entryFee: "5",
-      currentPlayers: 15,
-      maxPlayers: 20,
-      prizePool: "66",
-      status: "active",
-      creatorReward: "9",
-      isActivated: true,
-    },
-    {
-      id: "3",
-      entryFee: "2",
-      currentPlayers: 5,
-      maxPlayers: 10,
-      prizePool: "8.8",
-      status: "waiting",
-      creatorReward: "1.2",
-      isActivated: false,
-    },
-  ];
+  // Calculate stats
+  const stakedAmount = creatorStats?.stakedAmount
+    ? parseFloat(formatEther(creatorStats.stakedAmount)).toFixed(2)
+    : "0";
+  const totalEarnings = creatorStats?.totalRewards
+    ? parseFloat(formatEther(creatorStats.totalRewards)).toFixed(2)
+    : "0";
+  const totalPoolsCreated = Number(creatorStats?.poolsCreated || 0n);
+  const completedPools = Number(creatorStats?.poolsCompleted || 0n);
 
-  const joinedPools: JoinedPool[] = [
-    {
-      id: "4",
-      entryFee: "1",
-      totalPlayers: 10,
-      status: "active",
-      currentRound: 2,
-      isEliminated: false,
-      isWinner: false,
-      prize: "0",
-    },
-    {
-      id: "5",
-      entryFee: "2",
-      totalPlayers: 8,
-      status: "completed",
-      currentRound: 3,
-      isEliminated: false,
-      isWinner: true,
-      prize: "14.08",
-    },
-  ];
+  const createdPools = createdPoolsData || [];
+  const joinedPools = playerHistory || [];
 
-  const handleActivatePool = async (poolId: string) => {
+  // Contract write hooks
+  const { activatePool, isPending: isActivating } = useActivatePool();
+  const { claimPrize, isPending: isClaiming } = useClaimPrize();
+
+  const handleActivatePool = async (poolId: bigint) => {
     try {
-      // TODO: Implement actual blockchain transaction
-      console.log("Activating pool:", poolId);
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      alert("Pool activated!");
+      activatePool(poolId);
     } catch (error) {
       console.error("Error activating pool:", error);
-      alert("Failed to activate pool");
     }
   };
 
-  const handleClaimPrize = async (poolId: string) => {
+  const handleClaimPrize = async (poolId: bigint) => {
     try {
-      // TODO: Implement actual blockchain transaction
-      console.log("Claiming prize for pool:", poolId);
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      alert("Prize claimed!");
+      claimPrize(poolId);
     } catch (error) {
       console.error("Error claiming prize:", error);
-      alert("Failed to claim prize");
     }
   };
 
   if (!isMiniAppReady) {
     return (
       <main className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <p className="text-gray-400">Initializing...</p>
+        </div>
       </main>
     );
   }
@@ -170,29 +107,42 @@ export default function DashboardPage() {
 
           {/* Stats Overview */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <div className="bg-gradient-to-br from-purple-900/40 to-purple-800/40 border-2 border-purple-500/50 rounded-xl p-6">
-              <p className="text-purple-400 text-sm font-medium mb-2">💰 Total Earnings</p>
-              <p className="text-3xl font-black text-white">
-                {totalEarnings} <span className="text-lg text-gray-400">MON</span>
-              </p>
-            </div>
+            {creatorLoading ? (
+              <>
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="bg-gray-800/50 border-2 border-gray-700 rounded-xl p-6 animate-pulse">
+                    <div className="h-4 w-24 bg-gray-700 rounded mb-3"></div>
+                    <div className="h-8 w-20 bg-gray-700 rounded"></div>
+                  </div>
+                ))}
+              </>
+            ) : (
+              <>
+                <div className="bg-gradient-to-br from-purple-900/40 to-purple-800/40 border-2 border-purple-500/50 rounded-xl p-6">
+                  <p className="text-purple-400 text-sm font-medium mb-2">💰 Total Earnings</p>
+                  <p className="text-3xl font-black text-white">
+                    {totalEarnings} <span className="text-lg text-gray-400">MON</span>
+                  </p>
+                </div>
 
-            <div className="bg-gradient-to-br from-blue-900/40 to-blue-800/40 border-2 border-blue-500/50 rounded-xl p-6">
-              <p className="text-blue-400 text-sm font-medium mb-2">🎨 Pools Created</p>
-              <p className="text-3xl font-black text-white">{totalPoolsCreated}</p>
-            </div>
+                <div className="bg-gradient-to-br from-blue-900/40 to-blue-800/40 border-2 border-blue-500/50 rounded-xl p-6">
+                  <p className="text-blue-400 text-sm font-medium mb-2">🎨 Pools Created</p>
+                  <p className="text-3xl font-black text-white">{totalPoolsCreated}</p>
+                </div>
 
-            <div className="bg-gradient-to-br from-green-900/40 to-green-800/40 border-2 border-green-500/50 rounded-xl p-6">
-              <p className="text-green-400 text-sm font-medium mb-2">✅ Completed</p>
-              <p className="text-3xl font-black text-white">{completedPools}</p>
-            </div>
+                <div className="bg-gradient-to-br from-green-900/40 to-green-800/40 border-2 border-green-500/50 rounded-xl p-6">
+                  <p className="text-green-400 text-sm font-medium mb-2">✅ Completed</p>
+                  <p className="text-3xl font-black text-white">{completedPools}</p>
+                </div>
 
-            <div className="bg-gradient-to-br from-yellow-900/40 to-yellow-800/40 border-2 border-yellow-500/50 rounded-xl p-6">
-              <p className="text-yellow-400 text-sm font-medium mb-2">🔒 Staked</p>
-              <p className="text-3xl font-black text-white">
-                {stakedAmount} <span className="text-lg text-gray-400">MON</span>
-              </p>
-            </div>
+                <div className="bg-gradient-to-br from-yellow-900/40 to-yellow-800/40 border-2 border-yellow-500/50 rounded-xl p-6">
+                  <p className="text-yellow-400 text-sm font-medium mb-2">🔒 Staked</p>
+                  <p className="text-3xl font-black text-white">
+                    {stakedAmount} <span className="text-lg text-gray-400">MON</span>
+                  </p>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Quick Actions */}
@@ -244,7 +194,30 @@ export default function DashboardPage() {
           {/* Created Pools Tab */}
           {activeTab === "created" && (
             <div className="space-y-6">
-              {createdPools.length === 0 ? (
+              {poolsLoading ? (
+                <>
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="bg-gray-800/50 border-2 border-gray-700 rounded-2xl p-6 animate-pulse">
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <div className="h-6 w-32 bg-gray-700 rounded mb-2"></div>
+                          <div className="h-4 w-24 bg-gray-700 rounded"></div>
+                        </div>
+                        <div className="h-10 w-32 bg-gray-700 rounded-lg"></div>
+                      </div>
+                      <div className="grid grid-cols-4 gap-4 mb-4">
+                        {[1, 2, 3, 4].map((j) => (
+                          <div key={j} className="bg-gray-900/50 rounded-lg p-4">
+                            <div className="h-3 w-16 bg-gray-700 rounded mb-2"></div>
+                            <div className="h-5 w-20 bg-gray-700 rounded"></div>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="h-10 w-full bg-gray-700 rounded-lg"></div>
+                    </div>
+                  ))}
+                </>
+              ) : createdPools.length === 0 ? (
                 <div className="bg-gray-800/50 border border-gray-700 rounded-2xl p-12 text-center">
                   <div className="text-6xl mb-4">🎨</div>
                   <h3 className="text-2xl font-bold text-white mb-2">No Pools Created</h3>
@@ -267,65 +240,83 @@ export default function DashboardPage() {
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
                       <div>
                         <h3 className="text-2xl font-bold text-white mb-2">
-                          Pool #{pool.id}
+                          Pool #{pool.poolId.toString()}
                         </h3>
                         <div className="flex items-center gap-3">
                           <span
                             className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                              pool.status === "completed"
+                              pool.status === "COMPLETED"
                                 ? "bg-green-500/20 text-green-400 border border-green-500/50"
-                                : pool.status === "active"
+                                : pool.status === "ACTIVE"
                                 ? "bg-blue-500/20 text-blue-400 border border-blue-500/50"
                                 : "bg-yellow-500/20 text-yellow-400 border border-yellow-500/50"
                             }`}
                           >
-                            {pool.status === "completed" && "✅ Completed"}
-                            {pool.status === "active" && "⚔️ Active"}
-                            {pool.status === "waiting" && "⏳ Waiting"}
+                            {pool.status === "COMPLETED" && "✅ Completed"}
+                            {pool.status === "ACTIVE" && "⚔️ Active"}
+                            {pool.status === "OPENED" && "⏳ Waiting"}
                           </span>
                         </div>
                       </div>
-                      {pool.status === "waiting" && !pool.isActivated && (
-                        <button
-                          onClick={() => handleActivatePool(pool.id)}
-                          className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-6 py-3 rounded-lg font-bold transition-all"
-                        >
-                          🚀 Activate Pool
-                        </button>
-                      )}
-                      {pool.status === "completed" && (
-                        <button
-                          onClick={() => handleClaimPrize(pool.id)}
-                          className="bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 text-white px-6 py-3 rounded-lg font-bold transition-all"
-                        >
-                          💰 Claim Reward
-                        </button>
-                      )}
+                      <div className="flex gap-3">
+                        {pool.status === "OPENED" && (
+                          (() => {
+                            const currentPlayers = Number(pool.currentPlayers);
+                            const maxPlayers = Number(pool.maxPlayers);
+                            const fillPercentage = (currentPlayers / maxPlayers) * 100;
+                            const canActivate = fillPercentage >= 50;
+
+                            return (
+                              <button
+                                onClick={() => handleActivatePool(pool.poolId)}
+                                disabled={!canActivate || isActivating}
+                                className={`px-6 py-3 rounded-lg font-bold transition-all ${
+                                  canActivate
+                                    ? "bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white"
+                                    : "bg-gray-600 text-gray-400 cursor-not-allowed"
+                                }`}
+                                title={!canActivate ? `Need ${Math.ceil(maxPlayers * 0.5)} players (50%) to activate` : "Start the game now"}
+                              >
+                                {isActivating ? "⏳ Activating..." : canActivate ? "🚀 Activate Pool" : `🔒 ${fillPercentage.toFixed(0)}% Full`}
+                              </button>
+                            );
+                          })()
+                        )}
+                        {pool.status === "COMPLETED" && pool.creatorReward && (
+                          <button
+                            onClick={() => handleClaimPrize(pool.poolId)}
+                            disabled={isClaiming}
+                            className="bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 disabled:from-gray-600 disabled:to-gray-700 text-white px-6 py-3 rounded-lg font-bold transition-all"
+                          >
+                            {isClaiming ? "⏳ Claiming..." : "💰 Claim Reward"}
+                          </button>
+                        )}
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                       <div className="bg-gray-900/50 rounded-lg p-4">
                         <p className="text-gray-400 text-sm mb-1">Entry Fee</p>
-                        <p className="text-white font-bold">{pool.entryFee} MON</p>
+                        <p className="text-white font-bold">{parseFloat(formatEther(pool.entryFee)).toFixed(2)} MON</p>
                       </div>
                       <div className="bg-gray-900/50 rounded-lg p-4">
                         <p className="text-gray-400 text-sm mb-1">Players</p>
                         <p className="text-white font-bold">
-                          {pool.currentPlayers}/{pool.maxPlayers}
+                          {pool.currentPlayers.toString()}/{pool.maxPlayers.toString()}
                         </p>
                       </div>
                       <div className="bg-gray-900/50 rounded-lg p-4">
                         <p className="text-gray-400 text-sm mb-1">Prize Pool</p>
-                        <p className="text-white font-bold">{pool.prizePool} MON</p>
+                        <p className="text-white font-bold">{parseFloat(formatEther(pool.prizePool)).toFixed(2)} MON</p>
                       </div>
                       <div className="bg-purple-900/30 border border-purple-500/50 rounded-lg p-4">
                         <p className="text-purple-400 text-sm mb-1">Your Royalty</p>
-                        <p className="text-white font-bold">{pool.creatorReward} MON</p>
+                        <p className="text-white font-bold">{pool.creatorReward ? parseFloat(formatEther(pool.creatorReward)).toFixed(2) : "0"} MON</p>
                       </div>
                     </div>
 
                     <button
-                      onClick={() => router.push(`/pools/${pool.id}`)}
+                      onClick={() => router.push(`/game/${pool.poolId}`)}
                       className="w-full bg-gray-700 hover:bg-gray-600 text-white py-3 rounded-lg font-bold transition-all"
                     >
                       View Details →
@@ -352,70 +343,50 @@ export default function DashboardPage() {
                   </button>
                 </div>
               ) : (
-                joinedPools.map((pool) => (
+                joinedPools.map((playerData) => (
                   <div
-                    key={pool.id}
+                    key={playerData.id}
                     className="bg-gradient-to-br from-gray-800/80 to-gray-900/80 border-2 border-gray-700 rounded-2xl p-6 hover:border-blue-500 transition-all"
                   >
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
                       <div>
                         <h3 className="text-2xl font-bold text-white mb-2">
-                          Pool #{pool.id}
+                          Pool #{playerData.poolId.toString()}
                         </h3>
                         <div className="flex items-center gap-3 flex-wrap">
-                          {pool.isWinner && (
-                            <span className="px-3 py-1 rounded-full text-sm font-semibold bg-yellow-500/20 text-yellow-400 border border-yellow-500/50">
-                              🏆 Winner!
-                            </span>
-                          )}
-                          {pool.isEliminated && (
+                          {playerData.isEliminated ? (
                             <span className="px-3 py-1 rounded-full text-sm font-semibold bg-red-500/20 text-red-400 border border-red-500/50">
-                              ❌ Eliminated
+                              ❌ Eliminated in Round {playerData.eliminatedInRound?.toString()}
                             </span>
-                          )}
-                          {!pool.isEliminated && !pool.isWinner && pool.status === "active" && (
+                          ) : (
                             <span className="px-3 py-1 rounded-full text-sm font-semibold bg-green-500/20 text-green-400 border border-green-500/50">
                               ✅ Still In Game
                             </span>
                           )}
                         </div>
                       </div>
-                      {pool.isWinner && (
-                        <button
-                          onClick={() => handleClaimPrize(pool.id)}
-                          className="bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 text-white px-6 py-3 rounded-lg font-bold transition-all"
-                        >
-                          💰 Claim Prize
-                        </button>
-                      )}
                     </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                    <div className="grid grid-cols-2 gap-4 mb-4">
                       <div className="bg-gray-900/50 rounded-lg p-4">
-                        <p className="text-gray-400 text-sm mb-1">Entry Fee</p>
-                        <p className="text-white font-bold">{pool.entryFee} MON</p>
+                        <p className="text-gray-400 text-sm mb-1">Joined At</p>
+                        <p className="text-white font-bold">
+                          {new Date(Number(playerData.joinedAt) * 1000).toLocaleDateString()}
+                        </p>
                       </div>
                       <div className="bg-gray-900/50 rounded-lg p-4">
-                        <p className="text-gray-400 text-sm mb-1">Total Players</p>
-                        <p className="text-white font-bold">{pool.totalPlayers}</p>
+                        <p className="text-gray-400 text-sm mb-1">Status</p>
+                        <p className="text-white font-bold">
+                          {playerData.isEliminated ? "Eliminated" : "Active"}
+                        </p>
                       </div>
-                      <div className="bg-gray-900/50 rounded-lg p-4">
-                        <p className="text-gray-400 text-sm mb-1">Current Round</p>
-                        <p className="text-white font-bold">{pool.currentRound}</p>
-                      </div>
-                      {pool.isWinner && (
-                        <div className="bg-yellow-900/30 border border-yellow-500/50 rounded-lg p-4">
-                          <p className="text-yellow-400 text-sm mb-1">Prize Won</p>
-                          <p className="text-white font-bold">{pool.prize} MON</p>
-                        </div>
-                      )}
                     </div>
 
                     <button
-                      onClick={() => router.push(`/pools/${pool.id}`)}
+                      onClick={() => router.push(`/game/${playerData.poolId}`)}
                       className="w-full bg-gray-700 hover:bg-gray-600 text-white py-3 rounded-lg font-bold transition-all"
                     >
-                      {pool.status === "active" ? "Play Now →" : "View Details →"}
+                      View Game →
                     </button>
                   </div>
                 ))

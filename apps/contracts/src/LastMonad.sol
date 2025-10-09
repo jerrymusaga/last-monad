@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
@@ -24,6 +24,8 @@ contract LastMonad is Ownable, ReentrancyGuard {
         mapping(address => bool) isEliminated;
         uint256 currentRound;
         address[] remainingPlayers;
+        bool winnerClaimed;
+        bool creatorClaimed;
     }
 
     struct PoolCreator {
@@ -58,6 +60,8 @@ contract LastMonad is Ownable, ReentrancyGuard {
     event StakeDeposited(address indexed creator, uint256 amount, uint256 poolsEligible);
     event StakeWithdrawn(address indexed creator, uint256 amount, uint256 penalty);
     event CreatorRewardClaimed(address indexed creator, uint256 amount);
+    event WinnerPrizeClaimed(uint256 indexed poolId, address indexed winner, uint256 amount);
+    event CreatorRewardClaimedFromPool(uint256 indexed poolId, address indexed creator, uint256 amount);
     event ProjectPoolUpdated(uint256 amount, string source, uint256 totalPool);
 
     constructor() Ownable(msg.sender) {}
@@ -339,24 +343,51 @@ contract LastMonad is Ownable, ReentrancyGuard {
         return pool.prizePool - creatorFee;
     }
 
+    function claimWinnerPrize(uint256 _poolId) external nonReentrant {
+        Pool storage pool = pools[_poolId];
+        require(pool.status == PoolStatus.COMPLETED, "Pool is not completed");
+        require(pool.remainingPlayers.length == 1, "No clear winner");
+        require(pool.remainingPlayers[0] == msg.sender, "Only winner can claim prize");
+        require(!pool.winnerClaimed, "Winner prize already claimed");
+
+        uint256 creatorFee = (pool.prizePool * CREATOR_REWARD_PERCENTAGE) / 100;
+        uint256 prize = pool.prizePool - creatorFee;
+
+        pool.winnerClaimed = true;
+        payable(msg.sender).transfer(prize);
+
+        emit WinnerPrizeClaimed(_poolId, msg.sender, prize);
+    }
+
+    function claimCreatorReward(uint256 _poolId) external nonReentrant {
+        Pool storage pool = pools[_poolId];
+        require(pool.status == PoolStatus.COMPLETED, "Pool is not completed");
+        require(pool.creator == msg.sender, "Only creator can claim reward");
+        require(!pool.creatorClaimed, "Creator reward already claimed");
+
+        uint256 creatorReward = (pool.prizePool * CREATOR_REWARD_PERCENTAGE) / 100;
+
+        pool.creatorClaimed = true;
+        payable(msg.sender).transfer(creatorReward);
+
+        emit CreatorRewardClaimedFromPool(_poolId, msg.sender, creatorReward);
+    }
+
+    // Legacy function for backward compatibility - claims winner prize
     function claimPrize(uint256 _poolId) external nonReentrant {
         Pool storage pool = pools[_poolId];
         require(pool.status == PoolStatus.COMPLETED, "Pool is not completed");
         require(pool.remainingPlayers.length == 1, "No clear winner");
         require(pool.remainingPlayers[0] == msg.sender, "Only winner can claim prize");
+        require(!pool.winnerClaimed, "Winner prize already claimed");
 
         uint256 creatorFee = (pool.prizePool * CREATOR_REWARD_PERCENTAGE) / 100;
         uint256 prize = pool.prizePool - creatorFee;
 
-        // Check if this is an abandoned pool (owned by contract)
-        if (pool.creator == address(this)) {
-            // Pool was abandoned - creator fee goes to project pool
-            projectPool += creatorFee;
-            emit ProjectPoolUpdated(creatorFee, "Abandoned pool creator fee", projectPool);
-        }
-
-        pool.prizePool = 0; // Prevent double claiming
+        pool.winnerClaimed = true;
         payable(msg.sender).transfer(prize);
+
+        emit WinnerPrizeClaimed(_poolId, msg.sender, prize);
     }
 
     function unstakeAndClaim() external nonReentrant {
@@ -455,8 +486,8 @@ contract LastMonad is Ownable, ReentrancyGuard {
             uint256 poolId = creator.createdPoolIds[i];
             Pool storage pool = pools[poolId];
 
-            // Only give rewards if creator still owns the pool
-            if (pool.status == PoolStatus.COMPLETED && pool.creator == _creator) {
+            // Only give rewards if creator still owns the pool and hasn't claimed yet
+            if (pool.status == PoolStatus.COMPLETED && pool.creator == _creator && !pool.creatorClaimed) {
                 totalReward += (pool.prizePool * CREATOR_REWARD_PERCENTAGE) / 100;
             }
         }
@@ -470,7 +501,9 @@ contract LastMonad is Ownable, ReentrancyGuard {
         uint256 maxPlayers,
         uint256 currentPlayers,
         uint256 prizePool,
-        PoolStatus status
+        PoolStatus status,
+        bool winnerClaimed,
+        bool creatorClaimed
     ) {
         Pool storage pool = pools[_poolId];
         return (
@@ -479,7 +512,9 @@ contract LastMonad is Ownable, ReentrancyGuard {
             pool.maxPlayers,
             pool.currentPlayers,
             pool.prizePool,
-            pool.status
+            pool.status,
+            pool.winnerClaimed,
+            pool.creatorClaimed
         );
     }
 

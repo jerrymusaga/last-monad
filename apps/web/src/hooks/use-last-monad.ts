@@ -1,5 +1,4 @@
-import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useWatchContractEvent } from "wagmi";
-import { parseEther, formatEther } from "viem";
+import { useReadContract, useWriteContract, useWaitForTransactionReceipt, useWatchContractEvent } from "wagmi";
 import { lastMonadConfig, PlayerChoice, PoolStatus } from "@/contracts/config";
 import { useCallback } from "react";
 
@@ -65,6 +64,7 @@ export function useStakeForPoolCreation() {
         ...lastMonadConfig,
         functionName: "stakeForPoolCreation",
         value: amount,
+        chainId: lastMonadConfig.chainId,
       });
     },
     [writeContract]
@@ -131,6 +131,7 @@ export function useUnstakeAndClaim() {
     writeContract({
       ...lastMonadConfig,
       functionName: "unstakeAndClaim",
+      chainId: lastMonadConfig.chainId,
     });
   }, [writeContract]);
 
@@ -163,6 +164,7 @@ export function useCreatePool() {
         ...lastMonadConfig,
         functionName: "createPool",
         args: [entryFee, maxPlayers],
+        chainId: lastMonadConfig.chainId,
       });
     },
     [writeContract]
@@ -277,6 +279,7 @@ export function useActivatePool() {
         ...lastMonadConfig,
         functionName: "activatePool",
         args: [poolId],
+        chainId: lastMonadConfig.chainId,
       });
     },
     [writeContract]
@@ -312,6 +315,7 @@ export function useJoinPool() {
         functionName: "joinPool",
         args: [poolId],
         value: entryFee,
+        chainId: lastMonadConfig.chainId,
       });
     },
     [writeContract]
@@ -342,6 +346,7 @@ export function useMakeSelection() {
         ...lastMonadConfig,
         functionName: "makeSelection",
         args: [poolId, choice],
+        chainId: lastMonadConfig.chainId,
       });
     },
     [writeContract]
@@ -372,6 +377,7 @@ export function useClaimPrize() {
         ...lastMonadConfig,
         functionName: "claimPrize",
         args: [poolId],
+        chainId: lastMonadConfig.chainId,
       });
     },
     [writeContract]

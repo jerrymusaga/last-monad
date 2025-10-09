@@ -1,63 +1,63 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAccount, useBalance } from "wagmi";
 import { useMiniApp } from "@/contexts/miniapp-context";
 import { formatEther, parseEther } from "viem";
+import {
+  useStakeForPoolCreation,
+  useCreatorInfo,
+  useBaseStake,
+  useMaxStake,
+  useCalculatePoolsEligible,
+} from "@/hooks/use-last-monad";
 
 export default function StakePage() {
   const router = useRouter();
   const { address, isConnected } = useAccount();
   const { isMiniAppReady } = useMiniApp();
   const [stakeAmount, setStakeAmount] = useState(2);
-  const [isStaking, setIsStaking] = useState(false);
-  const [stakeComplete, setStakeComplete] = useState(false);
 
-  // TODO: Replace with actual blockchain data
-  const { data: balance } = useBalance({
-    address: address,
-  });
+  // Contract hooks
+  const { data: balance } = useBalance({ address });
+  const { baseStake } = useBaseStake();
+  const { maxStake } = useMaxStake();
+  const { creatorInfo, refetch: refetchCreator } = useCreatorInfo(address);
+  const { poolsEligible: calculatedPools } = useCalculatePoolsEligible(parseEther(stakeAmount.toString()));
+  const { stake, isPending, isConfirming, isSuccess, error } = useStakeForPoolCreation();
 
-  const BASE_STAKE = 2; // 2 MON base
-  const MAX_STAKE = 200; // 200 MON max
-  const hasStaked = false; // TODO: Check actual staking status
-  const currentStake = 0; // TODO: Get actual stake amount
+  const BASE_STAKE = baseStake ? Number(formatEther(baseStake)) : 2;
+  const MAX_STAKE = maxStake ? Number(formatEther(maxStake)) : 200;
+  const hasStaked = creatorInfo?.hasActiveStake ?? false;
+  const currentStake = creatorInfo?.stakedAmount ? parseFloat(formatEther(creatorInfo.stakedAmount)) : 0;
 
-  const calculatePoolsEligible = (amount: number) => {
-    // Contract logic: Every 2 MON = 1 pool
-    // 2 MON = 1 pool, 4 MON = 2 pools, 6 MON = 3 pools, etc.
-    return Math.floor(amount / BASE_STAKE);
-  };
+  const poolsEligible = calculatedPools || Math.floor(stakeAmount / BASE_STAKE);
+  const potentialEarnings = poolsEligible * 6;
 
-  const poolsEligible = calculatePoolsEligible(stakeAmount);
-  const potentialEarnings = poolsEligible * 6; // Example: 10 players × 5 MON × 12% = 6 MON per pool
+  // Handle successful stake
+  useEffect(() => {
+    if (isSuccess) {
+      refetchCreator();
+      setTimeout(() => {
+        router.push("/create-pool");
+      }, 2000);
+    }
+  }, [isSuccess, router, refetchCreator]);
 
   const handleStake = async () => {
-    if (!isConnected) {
-      alert("Please connect your wallet first!");
+    if (!isConnected || !address) {
       return;
     }
 
     if (!balance || parseFloat(formatEther(balance.value)) < stakeAmount) {
-      alert(`Insufficient balance! You need at least ${stakeAmount} MON to stake.`);
       return;
     }
 
-    setIsStaking(true);
     try {
-      // TODO: Implement actual blockchain transaction
-      console.log(`Staking ${stakeAmount} MON for creator status...`);
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      setStakeComplete(true);
-      setTimeout(() => {
-        router.push("/create-pool");
-      }, 2000);
-    } catch (error) {
-      console.error("Error staking:", error);
-      alert("Failed to stake MON");
-    } finally {
-      setIsStaking(false);
+      stake(parseEther(stakeAmount.toString()));
+    } catch (err) {
+      console.error("Error staking:", err);
     }
   };
 
@@ -89,7 +89,7 @@ export default function StakePage() {
     );
   }
 
-  if (stakeComplete) {
+  if (isSuccess) {
     return (
       <main className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 flex items-center justify-center p-4">
         <div className="bg-gradient-to-br from-green-900/40 to-emerald-900/40 border-2 border-green-500/50 rounded-2xl p-12 max-w-2xl text-center">
@@ -268,11 +268,17 @@ export default function StakePage() {
               {/* Stake Button */}
               <button
                 onClick={handleStake}
-                disabled={isStaking || (balance && parseFloat(formatEther(balance.value)) < stakeAmount)}
+                disabled={isPending || isConfirming || (balance && parseFloat(formatEther(balance.value)) < stakeAmount)}
                 className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:from-gray-600 disabled:to-gray-700 text-white py-6 text-2xl font-bold rounded-xl transition-all hover:scale-105 disabled:scale-100 disabled:cursor-not-allowed shadow-2xl"
               >
-                {isStaking ? "⏳ Staking..." : `🚀 Stake ${stakeAmount} MON`}
+                {isPending ? "⏳ Confirm in wallet..." : isConfirming ? "⏳ Confirming..." : `🚀 Stake ${stakeAmount} MON`}
               </button>
+
+              {error && (
+                <p className="text-center text-red-400 font-semibold">
+                  ⚠️ Error: {error.message}
+                </p>
+              )}
 
               {balance && parseFloat(formatEther(balance.value)) < stakeAmount && (
                 <p className="text-center text-red-400 font-semibold">

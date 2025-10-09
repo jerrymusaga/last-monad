@@ -1,0 +1,154 @@
+# Event entities (raw events)
+type LastMonad_CreatorRewardClaimed {
+  id: ID!
+  creator: String!
+  amount: BigInt!
+}
+
+type LastMonad_GameCompleted {
+  id: ID!
+  poolId: BigInt!
+  winner: String!
+  prizeAmount: BigInt!
+}
+
+type LastMonad_OwnershipTransferred {
+  id: ID!
+  previousOwner: String!
+  newOwner: String!
+}
+
+type LastMonad_PlayerJoined {
+  id: ID!
+  poolId: BigInt!
+  player: String!
+  currentPlayers: BigInt!
+  maxPlayers: BigInt!
+}
+
+type LastMonad_PlayerMadeChoice {
+  id: ID!
+  poolId: BigInt!
+  player: String!
+  choice: BigInt!
+  round: BigInt!
+}
+
+type LastMonad_PoolAbandoned {
+  id: ID!
+  poolId: BigInt!
+  creator: String!
+  refundAmount: BigInt!
+}
+
+type LastMonad_PoolActivated {
+  id: ID!
+  poolId: BigInt!
+  totalPlayers: BigInt!
+  prizePool: BigInt!
+}
+
+type LastMonad_PoolCreated {
+  id: ID!
+  poolId: BigInt!
+  creator: String!
+  entryFee: BigInt!
+  maxPlayers: BigInt!
+}
+
+type LastMonad_ProjectPoolUpdated {
+  id: ID!
+  amount: BigInt!
+  source: String!
+  totalPool: BigInt!
+}
+
+type LastMonad_RoundRepeated {
+  id: ID!
+  poolId: BigInt!
+  round: BigInt!
+  unanimousChoice: BigInt!
+  playerCount: BigInt!
+}
+
+type LastMonad_RoundResolved {
+  id: ID!
+  poolId: BigInt!
+  round: BigInt!
+  winningChoice: BigInt!
+  eliminatedCount: BigInt!
+  remainingCount: BigInt!
+}
+
+type LastMonad_StakeDeposited {
+  id: ID!
+  creator: String!
+  amount: BigInt!
+  poolsEligible: BigInt!
+}
+
+type LastMonad_StakeWithdrawn {
+  id: ID!
+  creator: String!
+  amount: BigInt!
+  penalty: BigInt!
+}
+
+# Aggregated entities for frontend queries
+
+type Pool {
+  id: ID!  # poolId as string
+  poolId: BigInt!
+  creator: String!
+  entryFee: BigInt!
+  maxPlayers: BigInt!
+  currentPlayers: BigInt!
+  prizePool: BigInt!
+  status: String!  # OPENED, ACTIVE, COMPLETED, ABANDONED
+  createdAt: BigInt!
+  activatedAt: BigInt
+  completedAt: BigInt
+  abandonedAt: BigInt
+  winner: String
+  winnerPrize: BigInt
+  creatorReward: BigInt
+}
+
+type Player {
+  id: ID!  # poolId-playerAddress
+  poolId: BigInt!
+  player: String!
+  joinedAt: BigInt!
+  isEliminated: Boolean!
+  eliminatedInRound: BigInt
+}
+
+type Round {
+  id: ID!  # poolId-round
+  poolId: BigInt!
+  round: BigInt!
+  winningChoice: BigInt
+  eliminatedCount: BigInt!
+  remainingCount: BigInt!
+  isRepeated: Boolean!
+  unanimousChoice: BigInt
+  timestamp: BigInt!
+}
+
+type Creator {
+  id: ID!  # creator address
+  address: String!
+  stakedAmount: BigInt!
+  poolsCreated: BigInt!
+  poolsCompleted: BigInt!
+  totalRewards: BigInt!
+  hasActiveStake: Boolean!
+}
+
+type GlobalStats {
+  id: ID!  # singleton "global"
+  totalPools: BigInt!
+  totalGamesCompleted: BigInt!
+  totalMonStaked: BigInt!
+  projectPoolBalance: BigInt!
+}

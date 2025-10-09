@@ -1,0 +1,26 @@
+# yaml-language-server: $schema=./node_modules/envio/evm.schema.json
+name: indexer
+networks:
+- id: 10143
+  start_block: 41767109  # LastMonad deployment block
+  contracts:
+  - name: LastMonad
+    address:
+    - 0x36A89CDeC4911af8DFfaf8c0D5e4E96008249E9D
+    handler: src/EventHandlers.ts
+    events:
+    - event: CreatorRewardClaimed(address indexed creator, uint256 amount)
+    - event: GameCompleted(uint256 indexed poolId, address indexed winner, uint256 prizeAmount)
+    - event: OwnershipTransferred(address indexed previousOwner, address indexed newOwner)
+    - event: PlayerJoined(uint256 indexed poolId, address indexed player, uint256 currentPlayers, uint256 maxPlayers)
+    - event: PlayerMadeChoice(uint256 indexed poolId, address indexed player, uint8 choice, uint256 round)
+    - event: PoolAbandoned(uint256 indexed poolId, address indexed creator, uint256 refundAmount)
+    - event: PoolActivated(uint256 indexed poolId, uint256 totalPlayers, uint256 prizePool)
+    - event: PoolCreated(uint256 indexed poolId, address indexed creator, uint256 entryFee, uint256 maxPlayers)
+    - event: ProjectPoolUpdated(uint256 amount, string source, uint256 totalPool)
+    - event: RoundRepeated(uint256 indexed poolId, uint256 round, uint8 unanimousChoice, uint256 playerCount)
+    - event: RoundResolved(uint256 indexed poolId, uint256 round, uint8 winningChoice, uint256 eliminatedCount, uint256 remainingCount)
+    - event: StakeDeposited(address indexed creator, uint256 amount, uint256 poolsEligible)
+    - event: StakeWithdrawn(address indexed creator, uint256 amount, uint256 penalty)
+unordered_multichain_mode: true
+preload_handlers: true
