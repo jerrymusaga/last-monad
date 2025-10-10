@@ -35,10 +35,18 @@ export function Navbar() {
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="w-80">
-              <div className="flex items-center gap-2 mb-8">
-
-                <span className="font-bold text-lg">
-                  last-monad
+              <div className="flex items-center gap-3 mb-8">
+                {/* Mobile Logo */}
+                <div className="relative">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-400 via-yellow-500 to-orange-500 flex items-center justify-center shadow-lg">
+                    <div className="w-8 h-8 rounded-full border-2 border-yellow-200 flex items-center justify-center">
+                      <span className="text-xs font-black text-white">⚡</span>
+                    </div>
+                  </div>
+                  <div className="absolute inset-0 rounded-full bg-yellow-400 blur-md opacity-30"></div>
+                </div>
+                <span className="font-black text-lg bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
+                  LAST MONAD
                 </span>
               </div>
               <nav className="flex flex-col gap-4">
@@ -64,10 +72,19 @@ export function Navbar() {
           </Sheet>
 
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-
-            <span className="hidden font-bold text-xl sm:inline-block">
-              last-monad
+          <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity group">
+            {/* Coin Icon with spinning animation on hover */}
+            <div className="relative">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-400 via-yellow-500 to-orange-500 flex items-center justify-center shadow-lg group-hover:animate-spin transition-all">
+                <div className="w-8 h-8 rounded-full border-2 border-yellow-200 flex items-center justify-center">
+                  <span className="text-xs font-black text-white">⚡</span>
+                </div>
+              </div>
+              {/* Glow effect */}
+              <div className="absolute inset-0 rounded-full bg-yellow-400 blur-md opacity-30 group-hover:opacity-50 transition-opacity"></div>
+            </div>
+            <span className="hidden font-black text-xl sm:inline-block bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
+              LAST MONAD
             </span>
           </Link>
         </div>

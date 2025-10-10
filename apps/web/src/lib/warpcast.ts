@@ -44,12 +44,12 @@ export async function getFarcasterManifest() {
     miniapp: {
       version: "1",
       name: frameName,
-      iconUrl: `${appUrl}/1percent.jpg`,
+      iconUrl: `${appUrl}/last-monad-logo.svg`,
       homeUrl: appUrl,
-      imageUrl: `${appUrl}/1percent.jpg`,
+      imageUrl: `${appUrl}/last-monad-logo.svg`,
       buttonTitle: `Launch App`,
-      splashImageUrl: `${appUrl}/1percent.jpg`,
-      splashBackgroundColor: "#FFFFFF",
+      splashImageUrl: `${appUrl}/last-monad-logo.svg`,
+      splashBackgroundColor: "#111827",
       webhookUrl: `${appUrl}/api/webhook`,
       // Metadata https://github.com/farcasterxyz/miniapps/discussions/191
       subtitle: "multiplayer prediction game", // 30 characters, no emojis or special characters, short description under app name
@@ -61,9 +61,9 @@ export async function getFarcasterManifest() {
       ogDescription: "a multiplayer prediction elimination game where minority wins in any round", // 100 characters, summarize core benefits in 1-2 lines
       screenshotUrls: [
         // 1284 x 2778, visual previews of the app, max 3 screenshots
-        `${appUrl}/1percent.jpg`,
+        `${appUrl}/last-monad-logo.svg`,
       ],
-      heroImageUrl: `${appUrl}/1percent.jpg`, // 1200 x 630px (1.91:1), promotional display image on top of the mini app store
+      heroImageUrl: `${appUrl}/last-monad-logo.svg`, // 1200 x 630px (1.91:1), promotional display image on top of the mini app store
       noindex,
     },
   };
