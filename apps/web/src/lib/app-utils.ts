@@ -1,5 +1,5 @@
 /**
- * Format a number as currency
+ * Format a number ass currency
  */
 export function formatCurrency(amount: number, currency = 'USD'): string {
   return new Intl.NumberFormat('en-US', {
