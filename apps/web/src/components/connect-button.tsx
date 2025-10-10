@@ -23,12 +23,22 @@ export function WalletConnectButton() {
 
   const { isCorrectNetwork } = useNetworkCheck()
 
+  // Detect if in Farcaster context
+  const isFarcasterContext = context !== null
+
   useEffect(() => {
     setMounted(true)
   }, [])
 
-  // Detect if in Farcaster context
-  const isFarcasterContext = context !== null
+  // Auto-connect Farcaster wallet when in Farcaster context
+  useEffect(() => {
+    if (mounted && !isConnected && isFarcasterContext) {
+      const frameConnector = connectors.find(connector => connector.id === 'frameWallet')
+      if (frameConnector) {
+        connect({ connector: frameConnector })
+      }
+    }
+  }, [mounted, isConnected, isFarcasterContext, connectors, connect])
 
   if (!mounted) {
     return (
