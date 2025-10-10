@@ -9,7 +9,7 @@ import { formatEther } from "viem";
 import {
   useJoinPool,
   useMakeSelection,
-  useClaimPrize,
+  useClaimWinnerPrize,
   usePlayerChoice,
 } from "@/hooks/use-last-monad";
 import { PlayerChoice } from "@/contracts/config";
@@ -33,7 +33,7 @@ export default function GamePage() {
   // Contract write hooks
   const { joinPool, isPending: isJoining, isSuccess: joinSuccess, error: joinError } = useJoinPool();
   const { makeSelection, isPending: isSelecting, isSuccess: selectionSuccess, error: selectionError } = useMakeSelection();
-  const { claimPrize, isPending: isClaiming, isSuccess: claimSuccess, error: claimError } = useClaimPrize();
+  const { claimWinnerPrize, isPending: isClaiming, isSuccess: claimSuccess, error: claimError } = useClaimWinnerPrize();
   const { choice: playerChoice, refetch: refetchChoice } = usePlayerChoice(poolId, address);
 
   const game = useMemo(() => {
@@ -47,6 +47,7 @@ export default function GamePage() {
   const currentPlayer = players.find((p) => p.player.toLowerCase() === address?.toLowerCase());
   const activePlayers = players.filter((p) => !p.isEliminated);
   const isPlayerInGame = !!currentPlayer;
+  const isCreator = game?.creator.toLowerCase() === address?.toLowerCase();
   const currentRound = rounds.length > 0 ? Number(rounds[rounds.length - 1].round) : 1;
   const hasSubmittedChoice = playerChoice !== undefined && playerChoice !== PlayerChoice.NONE;
 
@@ -66,6 +67,13 @@ export default function GamePage() {
 
     return () => clearInterval(interval);
   }, [game?.status]);
+
+  // Redirect non-players away from active games (they can only view completed games)
+  useEffect(() => {
+    if (game && game.status === "ACTIVE" && !isPlayerInGame) {
+      router.push(`/pools/${gameId}`);
+    }
+  }, [game, isPlayerInGame, gameId, router]);
 
   // Handle successful actions with polling for indexer
   useEffect(() => {
@@ -123,7 +131,7 @@ export default function GamePage() {
     }
 
     try {
-      claimPrize(poolId);
+      claimWinnerPrize(poolId);
     } catch (error) {
       console.error("Error claiming prize:", error);
     }
@@ -223,10 +231,15 @@ export default function GamePage() {
                     <>
                       <button
                         onClick={handleClaimPrize}
-                        disabled={isClaiming}
-                        className="mt-6 bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 disabled:from-gray-600 disabled:to-gray-700 text-white px-8 py-4 text-lg font-bold rounded-xl transition-all hover:scale-105 disabled:scale-100"
+                        disabled={isClaiming || game.winnerClaimed}
+                        className={`mt-6 px-8 py-4 text-lg font-bold rounded-xl transition-all ${
+                          game.winnerClaimed
+                            ? "bg-gray-600 text-gray-400 cursor-not-allowed"
+                            : "bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 disabled:from-gray-600 disabled:to-gray-700 text-white hover:scale-105 disabled:scale-100"
+                        }`}
+                        title={game.winnerClaimed ? "Prize already claimed" : "Claim your 88% winner prize"}
                       >
-                        {isClaiming ? "⏳ Claiming..." : "💰 Claim Prize"}
+                        {isClaiming ? "⏳ Claiming..." : game.winnerClaimed ? "✅ Prize Claimed" : "💰 Claim Prize"}
                       </button>
 
                       {claimError && (
@@ -314,9 +327,25 @@ export default function GamePage() {
                 </div>
               )}
 
+              {/* Creator Spectator Message */}
+              {game.status === "ACTIVE" && isCreator && (
+                <div className="bg-gradient-to-br from-purple-900/40 to-pink-900/40 border-2 border-purple-500/50 rounded-2xl p-8 text-center">
+                  <div className="text-6xl mb-4">👑</div>
+                  <h2 className="text-3xl font-bold text-white mb-4">Creator View</h2>
+                  <p className="text-gray-300 text-lg mb-4">
+                    You created this pool! Creators cannot participate in their own games.
+                  </p>
+                  <div className="bg-gray-800/50 rounded-xl p-5">
+                    <p className="text-gray-400 text-sm mb-2">Players Remaining</p>
+                    <p className="text-4xl font-black text-white">{activePlayers.length}</p>
+                  </div>
+                </div>
+              )}
+
               {/* Choice Selection */}
               {game.status === "ACTIVE" &&
                 isPlayerInGame &&
+                !isCreator &&
                 !currentPlayer?.isEliminated && (
                   <div className="bg-gradient-to-br from-blue-900/40 to-purple-900/40 border-2 border-blue-500/50 rounded-2xl p-8">
                     <h2 className="text-3xl font-bold text-white mb-4">
@@ -399,23 +428,6 @@ export default function GamePage() {
                 </div>
               )}
 
-              {/* Spectator Mode - for non-players watching active games */}
-              {game.status === "ACTIVE" && !isPlayerInGame && (
-                <div className="bg-gradient-to-br from-purple-900/40 to-blue-900/40 border-2 border-purple-500/50 rounded-2xl p-8 text-center">
-                  <div className="text-6xl mb-4">👁️</div>
-                  <h2 className="text-3xl font-bold text-white mb-4">Spectator Mode</h2>
-                  <p className="text-gray-300 text-lg mb-6">
-                    You're watching this game. Only players who joined before it started can participate.
-                  </p>
-                  <div className="bg-gray-800/50 rounded-xl p-5">
-                    <p className="text-gray-400 text-sm mb-2">Current Round</p>
-                    <p className="text-4xl font-black text-white">{currentRound}</p>
-                    <p className="text-gray-400 text-sm mt-4">
-                      {activePlayers.length} player{activePlayers.length !== 1 ? 's' : ''} remaining
-                    </p>
-                  </div>
-                </div>
-              )}
 
               {/* Round History */}
               {rounds.length > 0 && (

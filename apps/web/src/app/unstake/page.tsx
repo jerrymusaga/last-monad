@@ -26,9 +26,12 @@ export default function UnstakePage() {
 
   const stakedAmount = creatorInfo?.stakedAmount ? parseFloat(formatEther(creatorInfo.stakedAmount)) : 0;
   const totalEarnings = totalReward ? parseFloat(formatEther(totalReward)) : 0;
-  const activePools = creatorInfo ? creatorInfo.poolsCreated - creatorInfo.poolsRemaining : 0;
-  const completedPools = Number(creatorInfo?.poolsRemaining || 0n);
+  const totalPoolsCreated = Number(creatorInfo?.poolsCreated || 0);
+  const poolsRemaining = Number(creatorInfo?.poolsRemaining || 0);
+  const activePools = totalPoolsCreated - poolsRemaining;
+  const completedPools = activePools; // pools that have been used/completed
   const pendingRewards = totalEarnings;
+  const hasPoolsRemaining = poolsRemaining > 0;
 
   // Calculate penalty (30% for incomplete pools per contract)
   const hasPenalty = !allPoolsCompleted;
@@ -300,12 +303,20 @@ export default function UnstakePage() {
               <div className="bg-gradient-to-br from-purple-900/30 to-blue-900/30 border border-purple-500/50 rounded-xl p-6">
                 <h3 className="text-xl font-bold text-white mb-4">🤔 Not Sure?</h3>
                 <div className="space-y-3">
-                  <button
-                    onClick={() => router.push("/create-pool")}
-                    className="w-full bg-purple-700 hover:bg-purple-600 text-white py-3 rounded-lg font-semibold transition-all"
-                  >
-                    🎨 Create Another Pool
-                  </button>
+                  {hasPoolsRemaining ? (
+                    <button
+                      onClick={() => router.push("/create-pool")}
+                      className="w-full bg-purple-700 hover:bg-purple-600 text-white py-3 rounded-lg font-semibold transition-all"
+                    >
+                      🎨 Create Another Pool
+                    </button>
+                  ) : (
+                    <div className="bg-gray-800/50 border border-gray-600 rounded-lg p-4 text-center">
+                      <p className="text-gray-400 text-sm">
+                        🔒 No pools remaining. Unstake to create more pools later.
+                      </p>
+                    </div>
+                  )}
                   <button
                     onClick={() => router.push("/dashboard")}
                     className="w-full bg-gray-700 hover:bg-gray-600 text-white py-3 rounded-lg font-semibold transition-all"

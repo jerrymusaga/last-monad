@@ -38,6 +38,8 @@ export interface EnvioPoolDetails {
     winner?: string;
     winnerPrize?: bigint;
     creatorReward?: bigint;
+    winnerClaimed: boolean;
+    creatorClaimed: boolean;
   }>;
   Player: EnvioPlayer[];
   Round: EnvioRound[];

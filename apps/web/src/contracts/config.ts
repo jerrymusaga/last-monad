@@ -1,6 +1,6 @@
 import { LAST_MONAD_ABI } from "./lastMonadABI";
 
-export const LAST_MONAD_ADDRESS = "0x36A89CDeC4911af8DFfaf8c0D5e4E96008249E9D" as `0x${string}`;
+export const LAST_MONAD_ADDRESS = "0xDEcD7907CF3D01479Ce690D4108977021060C7da" as `0x${string}`;
 
 // Monad Testnet Chain ID
 export const MONAD_TESTNET_CHAIN_ID = 10143;

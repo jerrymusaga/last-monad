@@ -10,7 +10,7 @@ import {
   useEnvioPlayerHistory,
 } from "@/hooks/envio";
 import { formatEther } from "viem";
-import { useActivatePool, useClaimPrize } from "@/hooks/use-last-monad";
+import { useActivatePool, useClaimCreatorReward } from "@/hooks/use-last-monad";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -38,7 +38,7 @@ export default function DashboardPage() {
 
   // Contract write hooks
   const { activatePool, isPending: isActivating } = useActivatePool();
-  const { claimPrize, isPending: isClaiming } = useClaimPrize();
+  const { claimCreatorReward, isPending: isClaiming } = useClaimCreatorReward();
 
   const handleActivatePool = async (poolId: bigint) => {
     try {
@@ -48,11 +48,11 @@ export default function DashboardPage() {
     }
   };
 
-  const handleClaimPrize = async (poolId: bigint) => {
+  const handleClaimCreatorReward = async (poolId: bigint) => {
     try {
-      claimPrize(poolId);
+      claimCreatorReward(poolId);
     } catch (error) {
-      console.error("Error claiming prize:", error);
+      console.error("Error claiming creator reward:", error);
     }
   };
 
@@ -281,15 +281,6 @@ export default function DashboardPage() {
                               </button>
                             );
                           })()
-                        )}
-                        {pool.status === "COMPLETED" && pool.creatorReward && (
-                          <button
-                            onClick={() => handleClaimPrize(pool.poolId)}
-                            disabled={isClaiming}
-                            className="bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 disabled:from-gray-600 disabled:to-gray-700 text-white px-6 py-3 rounded-lg font-bold transition-all"
-                          >
-                            {isClaiming ? "⏳ Claiming..." : "💰 Claim Reward"}
-                          </button>
                         )}
                       </div>
                     </div>

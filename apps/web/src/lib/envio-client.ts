@@ -28,6 +28,8 @@ export const QUERIES = {
         winner
         winnerPrize
         creatorReward
+        winnerClaimed
+        creatorClaimed
       }
     }
   `,
@@ -50,6 +52,8 @@ export const QUERIES = {
         winner
         winnerPrize
         creatorReward
+        winnerClaimed
+        creatorClaimed
       }
 
       Player(where: { poolId: { _eq: $poolId } }) {
@@ -104,6 +108,9 @@ export const QUERIES = {
         status
         createdAt
         completedAt
+        winnerClaimed
+        creatorClaimed
+        creatorReward
       }
     }
   `,

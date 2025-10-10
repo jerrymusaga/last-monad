@@ -17,6 +17,8 @@ export interface EnvioPool {
   winner?: string;
   winnerPrize?: bigint;
   creatorReward?: bigint;
+  winnerClaimed: boolean;
+  creatorClaimed: boolean;
 }
 
 interface PoolsResponse {

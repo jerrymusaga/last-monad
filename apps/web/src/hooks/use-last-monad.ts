@@ -363,7 +363,7 @@ export function useMakeSelection() {
 }
 
 /**
- * Claim prize after winning
+ * Claim prize after winning (legacy - redirects to claimWinnerPrize)
  */
 export function useClaimPrize() {
   const { writeContract, data: hash, isPending, error } = useWriteContract();
@@ -385,6 +385,68 @@ export function useClaimPrize() {
 
   return {
     claimPrize,
+    hash,
+    isPending,
+    isConfirming,
+    isSuccess,
+    error,
+  };
+}
+
+/**
+ * Claim winner prize (88% of prize pool)
+ */
+export function useClaimWinnerPrize() {
+  const { writeContract, data: hash, isPending, error} = useWriteContract();
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
+    hash,
+  });
+
+  const claimWinnerPrize = useCallback(
+    (poolId: bigint) => {
+      writeContract({
+        ...lastMonadConfig,
+        functionName: "claimWinnerPrize",
+        args: [poolId],
+        chainId: lastMonadConfig.chainId,
+      });
+    },
+    [writeContract]
+  );
+
+  return {
+    claimWinnerPrize,
+    hash,
+    isPending,
+    isConfirming,
+    isSuccess,
+    error,
+  };
+}
+
+/**
+ * Claim creator reward (12% of prize pool) from a specific pool
+ */
+export function useClaimCreatorReward() {
+  const { writeContract, data: hash, isPending, error } = useWriteContract();
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
+    hash,
+  });
+
+  const claimCreatorReward = useCallback(
+    (poolId: bigint) => {
+      writeContract({
+        ...lastMonadConfig,
+        functionName: "claimCreatorReward",
+        args: [poolId],
+        chainId: lastMonadConfig.chainId,
+      });
+    },
+    [writeContract]
+  );
+
+  return {
+    claimCreatorReward,
     hash,
     isPending,
     isConfirming,

@@ -1,322 +1,1170 @@
 export const LAST_MONAD_ABI = [
-  // Events
-  {
-    anonymous: false,
-    inputs: [
-      { indexed: true, internalType: "uint256", name: "poolId", type: "uint256" },
-      { indexed: true, internalType: "address", name: "creator", type: "address" },
-      { indexed: false, internalType: "uint256", name: "entryFee", type: "uint256" },
-      { indexed: false, internalType: "uint256", name: "maxPlayers", type: "uint256" },
-    ],
-    name: "PoolCreated",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      { indexed: true, internalType: "uint256", name: "poolId", type: "uint256" },
-      { indexed: true, internalType: "address", name: "player", type: "address" },
-      { indexed: false, internalType: "uint256", name: "currentPlayers", type: "uint256" },
-      { indexed: false, internalType: "uint256", name: "maxPlayers", type: "uint256" },
-    ],
-    name: "PlayerJoined",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      { indexed: true, internalType: "uint256", name: "poolId", type: "uint256" },
-      { indexed: false, internalType: "uint256", name: "totalPlayers", type: "uint256" },
-      { indexed: false, internalType: "uint256", name: "prizePool", type: "uint256" },
-    ],
-    name: "PoolActivated",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      { indexed: true, internalType: "address", name: "creator", type: "address" },
-      { indexed: false, internalType: "uint256", name: "amount", type: "uint256" },
-      { indexed: false, internalType: "uint256", name: "poolsEligible", type: "uint256" },
-    ],
-    name: "StakeDeposited",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      { indexed: true, internalType: "address", name: "creator", type: "address" },
-      { indexed: false, internalType: "uint256", name: "amount", type: "uint256" },
-      { indexed: false, internalType: "uint256", name: "penalty", type: "uint256" },
-    ],
-    name: "StakeWithdrawn",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      { indexed: true, internalType: "uint256", name: "poolId", type: "uint256" },
-      { indexed: true, internalType: "address", name: "winner", type: "address" },
-      { indexed: false, internalType: "uint256", name: "prizeAmount", type: "uint256" },
-    ],
-    name: "GameCompleted",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      { indexed: true, internalType: "uint256", name: "poolId", type: "uint256" },
-      { indexed: true, internalType: "address", name: "player", type: "address" },
-      { indexed: false, internalType: "uint8", name: "choice", type: "uint8" },
-      { indexed: false, internalType: "uint256", name: "round", type: "uint256" },
-    ],
-    name: "PlayerMadeChoice",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      { indexed: true, internalType: "uint256", name: "poolId", type: "uint256" },
-      { indexed: false, internalType: "uint256", name: "round", type: "uint256" },
-      { indexed: false, internalType: "uint8", name: "winningChoice", type: "uint8" },
-      { indexed: false, internalType: "uint256", name: "eliminatedCount", type: "uint256" },
-      { indexed: false, internalType: "uint256", name: "remainingCount", type: "uint256" },
-    ],
-    name: "RoundResolved",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      { indexed: true, internalType: "uint256", name: "poolId", type: "uint256" },
-      { indexed: false, internalType: "uint256", name: "round", type: "uint256" },
-      { indexed: false, internalType: "uint8", name: "unanimousChoice", type: "uint8" },
-      { indexed: false, internalType: "uint256", name: "playerCount", type: "uint256" },
-    ],
-    name: "RoundRepeated",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      { indexed: true, internalType: "uint256", name: "poolId", type: "uint256" },
-      { indexed: true, internalType: "address", name: "creator", type: "address" },
-      { indexed: false, internalType: "uint256", name: "refundAmount", type: "uint256" },
-    ],
-    name: "PoolAbandoned",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      { indexed: true, internalType: "address", name: "creator", type: "address" },
-      { indexed: false, internalType: "uint256", name: "amount", type: "uint256" },
-    ],
-    name: "CreatorRewardClaimed",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      { indexed: false, internalType: "uint256", name: "amount", type: "uint256" },
-      { indexed: false, internalType: "string", name: "source", type: "string" },
-      { indexed: false, internalType: "uint256", name: "totalPool", type: "uint256" },
-    ],
-    name: "ProjectPoolUpdated",
-    type: "event",
-  },
-
-  // Read Functions
-  {
-    inputs: [{ internalType: "uint256", name: "stakeAmount", type: "uint256" }],
-    name: "calculatePoolsEligible",
-    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-    stateMutability: "pure",
-    type: "function",
-  },
-  {
-    inputs: [{ internalType: "address", name: "_creator", type: "address" }],
-    name: "getCreatorInfo",
-    outputs: [
-      { internalType: "uint256", name: "stakedAmount", type: "uint256" },
-      { internalType: "uint256", name: "poolsCreated", type: "uint256" },
-      { internalType: "uint256", name: "poolsRemaining", type: "uint256" },
-      { internalType: "bool", name: "hasActiveStake", type: "bool" },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [{ internalType: "uint256", name: "_poolId", type: "uint256" }],
-    name: "getPoolInfo",
-    outputs: [
-      { internalType: "address", name: "creator", type: "address" },
-      { internalType: "uint256", name: "entryFee", type: "uint256" },
-      { internalType: "uint256", name: "maxPlayers", type: "uint256" },
-      { internalType: "uint256", name: "currentPlayers", type: "uint256" },
-      { internalType: "uint256", name: "prizePool", type: "uint256" },
-      { internalType: "uint8", name: "status", type: "uint8" },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [{ internalType: "address", name: "_creator", type: "address" }],
-    name: "getCreatedPools",
-    outputs: [{ internalType: "uint256[]", name: "", type: "uint256[]" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [{ internalType: "uint256", name: "_poolId", type: "uint256" }],
-    name: "getRemainingPlayers",
-    outputs: [{ internalType: "address[]", name: "", type: "address[]" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [{ internalType: "uint256", name: "_poolId", type: "uint256" }],
-    name: "getCurrentRound",
-    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      { internalType: "uint256", name: "_poolId", type: "uint256" },
-      { internalType: "address", name: "_player", type: "address" },
-    ],
-    name: "getPlayerChoice",
-    outputs: [{ internalType: "uint8", name: "", type: "uint8" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      { internalType: "uint256", name: "_poolId", type: "uint256" },
-      { internalType: "address", name: "_player", type: "address" },
-    ],
-    name: "isPlayerEliminated",
-    outputs: [{ internalType: "bool", name: "", type: "bool" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [{ internalType: "uint256", name: "_poolId", type: "uint256" }],
-    name: "getGameProgress",
-    outputs: [
-      { internalType: "uint256", name: "currentRound", type: "uint256" },
-      { internalType: "uint256", name: "remainingPlayersCount", type: "uint256" },
-      { internalType: "uint256", name: "totalPlayersCount", type: "uint256" },
-      { internalType: "bool", name: "isGameComplete", type: "bool" },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [{ internalType: "address", name: "_creator", type: "address" }],
-    name: "areAllPoolsCompleted",
-    outputs: [{ internalType: "bool", name: "", type: "bool" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [{ internalType: "address", name: "_creator", type: "address" }],
-    name: "calculateCreatorReward",
-    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [{ internalType: "uint256", name: "_poolId", type: "uint256" }],
-    name: "canActivatePool",
-    outputs: [{ internalType: "bool", name: "", type: "bool" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "currentPoolId",
-    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "BASE_STAKE",
-    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "MAX_STAKE_ALLOWED",
-    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "CREATOR_REWARD_PERCENTAGE",
-    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-    stateMutability: "view",
-    type: "function",
-  },
-
-  // Write Functions
-  {
-    inputs: [],
-    name: "stakeForPoolCreation",
-    outputs: [],
-    stateMutability: "payable",
-    type: "function",
-  },
-  {
-    inputs: [
-      { internalType: "uint256", name: "_entryFee", type: "uint256" },
-      { internalType: "uint256", name: "_maxPlayers", type: "uint256" },
-    ],
-    name: "createPool",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [{ internalType: "uint256", name: "_poolId", type: "uint256" }],
-    name: "joinPool",
-    outputs: [],
-    stateMutability: "payable",
-    type: "function",
-  },
-  {
-    inputs: [{ internalType: "uint256", name: "_poolId", type: "uint256" }],
-    name: "activatePool",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      { internalType: "uint256", name: "_poolId", type: "uint256" },
-      { internalType: "uint8", name: "_choice", type: "uint8" },
-    ],
-    name: "makeSelection",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [{ internalType: "uint256", name: "_poolId", type: "uint256" }],
-    name: "claimPrize",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "unstakeAndClaim",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-] as const;
+        {
+            "type": "constructor",
+            "inputs": [],
+            "stateMutability": "nonpayable"
+        },
+        {
+            "type": "function",
+            "name": "BASE_STAKE",
+            "inputs": [],
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                }
+            ],
+            "stateMutability": "view"
+        },
+        {
+            "type": "function",
+            "name": "CREATOR_REWARD_PERCENTAGE",
+            "inputs": [],
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                }
+            ],
+            "stateMutability": "view"
+        },
+        {
+            "type": "function",
+            "name": "MAX_STAKE_ALLOWED",
+            "inputs": [],
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                }
+            ],
+            "stateMutability": "view"
+        },
+        {
+            "type": "function",
+            "name": "PENALTY_PERCENTAGE",
+            "inputs": [],
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                }
+            ],
+            "stateMutability": "view"
+        },
+        {
+            "type": "function",
+            "name": "POOL_MULTIPLIER",
+            "inputs": [],
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                }
+            ],
+            "stateMutability": "view"
+        },
+        {
+            "type": "function",
+            "name": "activatePool",
+            "inputs": [
+                {
+                    "name": "_poolId",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                }
+            ],
+            "outputs": [],
+            "stateMutability": "nonpayable"
+        },
+        {
+            "type": "function",
+            "name": "areAllPoolsCompleted",
+            "inputs": [
+                {
+                    "name": "_creator",
+                    "type": "address",
+                    "internalType": "address"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "bool",
+                    "internalType": "bool"
+                }
+            ],
+            "stateMutability": "view"
+        },
+        {
+            "type": "function",
+            "name": "calculateCreatorReward",
+            "inputs": [
+                {
+                    "name": "_creator",
+                    "type": "address",
+                    "internalType": "address"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                }
+            ],
+            "stateMutability": "view"
+        },
+        {
+            "type": "function",
+            "name": "calculatePoolsEligible",
+            "inputs": [
+                {
+                    "name": "stakeAmount",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                }
+            ],
+            "stateMutability": "pure"
+        },
+        {
+            "type": "function",
+            "name": "canActivatePool",
+            "inputs": [
+                {
+                    "name": "_poolId",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "bool",
+                    "internalType": "bool"
+                }
+            ],
+            "stateMutability": "view"
+        },
+        {
+            "type": "function",
+            "name": "claimCreatorReward",
+            "inputs": [
+                {
+                    "name": "_poolId",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                }
+            ],
+            "outputs": [],
+            "stateMutability": "nonpayable"
+        },
+        {
+            "type": "function",
+            "name": "claimPrize",
+            "inputs": [
+                {
+                    "name": "_poolId",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                }
+            ],
+            "outputs": [],
+            "stateMutability": "nonpayable"
+        },
+        {
+            "type": "function",
+            "name": "claimRefundFromAbandonedPool",
+            "inputs": [
+                {
+                    "name": "_poolId",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                }
+            ],
+            "outputs": [],
+            "stateMutability": "nonpayable"
+        },
+        {
+            "type": "function",
+            "name": "claimWinnerPrize",
+            "inputs": [
+                {
+                    "name": "_poolId",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                }
+            ],
+            "outputs": [],
+            "stateMutability": "nonpayable"
+        },
+        {
+            "type": "function",
+            "name": "createPool",
+            "inputs": [
+                {
+                    "name": "_entryFee",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "_maxPlayers",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                }
+            ],
+            "outputs": [],
+            "stateMutability": "nonpayable"
+        },
+        {
+            "type": "function",
+            "name": "currentPoolId",
+            "inputs": [],
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                }
+            ],
+            "stateMutability": "view"
+        },
+        {
+            "type": "function",
+            "name": "getCreatedPools",
+            "inputs": [
+                {
+                    "name": "_creator",
+                    "type": "address",
+                    "internalType": "address"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "uint256[]",
+                    "internalType": "uint256[]"
+                }
+            ],
+            "stateMutability": "view"
+        },
+        {
+            "type": "function",
+            "name": "getCreatorInfo",
+            "inputs": [
+                {
+                    "name": "_creator",
+                    "type": "address",
+                    "internalType": "address"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "stakedAmount",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "poolsCreated",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "poolsRemaining",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "hasActiveStake",
+                    "type": "bool",
+                    "internalType": "bool"
+                }
+            ],
+            "stateMutability": "view"
+        },
+        {
+            "type": "function",
+            "name": "getCurrentRound",
+            "inputs": [
+                {
+                    "name": "_poolId",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                }
+            ],
+            "stateMutability": "view"
+        },
+        {
+            "type": "function",
+            "name": "getGameProgress",
+            "inputs": [
+                {
+                    "name": "_poolId",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "currentRound",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "remainingPlayersCount",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "totalPlayersCount",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "isGameComplete",
+                    "type": "bool",
+                    "internalType": "bool"
+                }
+            ],
+            "stateMutability": "view"
+        },
+        {
+            "type": "function",
+            "name": "getPlayerChoice",
+            "inputs": [
+                {
+                    "name": "_poolId",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "_player",
+                    "type": "address",
+                    "internalType": "address"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "uint8",
+                    "internalType": "enum LastMonad.PlayerChoice"
+                }
+            ],
+            "stateMutability": "view"
+        },
+        {
+            "type": "function",
+            "name": "getPoolInfo",
+            "inputs": [
+                {
+                    "name": "_poolId",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "creator",
+                    "type": "address",
+                    "internalType": "address"
+                },
+                {
+                    "name": "entryFee",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "maxPlayers",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "currentPlayers",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "prizePool",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "status",
+                    "type": "uint8",
+                    "internalType": "enum LastMonad.PoolStatus"
+                },
+                {
+                    "name": "winnerClaimed",
+                    "type": "bool",
+                    "internalType": "bool"
+                },
+                {
+                    "name": "creatorClaimed",
+                    "type": "bool",
+                    "internalType": "bool"
+                }
+            ],
+            "stateMutability": "view"
+        },
+        {
+            "type": "function",
+            "name": "getProjectPoolBalance",
+            "inputs": [],
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                }
+            ],
+            "stateMutability": "view"
+        },
+        {
+            "type": "function",
+            "name": "getRemainingPlayers",
+            "inputs": [
+                {
+                    "name": "_poolId",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "address[]",
+                    "internalType": "address[]"
+                }
+            ],
+            "stateMutability": "view"
+        },
+        {
+            "type": "function",
+            "name": "hasPlayerChosen",
+            "inputs": [
+                {
+                    "name": "_poolId",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "_player",
+                    "type": "address",
+                    "internalType": "address"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "bool",
+                    "internalType": "bool"
+                }
+            ],
+            "stateMutability": "view"
+        },
+        {
+            "type": "function",
+            "name": "isPlayerEliminated",
+            "inputs": [
+                {
+                    "name": "_poolId",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "_player",
+                    "type": "address",
+                    "internalType": "address"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "bool",
+                    "internalType": "bool"
+                }
+            ],
+            "stateMutability": "view"
+        },
+        {
+            "type": "function",
+            "name": "isPoolAbandoned",
+            "inputs": [
+                {
+                    "name": "_poolId",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "bool",
+                    "internalType": "bool"
+                }
+            ],
+            "stateMutability": "view"
+        },
+        {
+            "type": "function",
+            "name": "joinPool",
+            "inputs": [
+                {
+                    "name": "_poolId",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                }
+            ],
+            "outputs": [],
+            "stateMutability": "payable"
+        },
+        {
+            "type": "function",
+            "name": "makeSelection",
+            "inputs": [
+                {
+                    "name": "_poolId",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "_choice",
+                    "type": "uint8",
+                    "internalType": "enum LastMonad.PlayerChoice"
+                }
+            ],
+            "outputs": [],
+            "stateMutability": "nonpayable"
+        },
+        {
+            "type": "function",
+            "name": "owner",
+            "inputs": [],
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "address",
+                    "internalType": "address"
+                }
+            ],
+            "stateMutability": "view"
+        },
+        {
+            "type": "function",
+            "name": "poolCreators",
+            "inputs": [
+                {
+                    "name": "",
+                    "type": "address",
+                    "internalType": "address"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "stakedAmount",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "poolsCreated",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "poolsRemaining",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "totalPools",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "hasActiveStake",
+                    "type": "bool",
+                    "internalType": "bool"
+                },
+                {
+                    "name": "stakedAt",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                }
+            ],
+            "stateMutability": "view"
+        },
+        {
+            "type": "function",
+            "name": "pools",
+            "inputs": [
+                {
+                    "name": "",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "id",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "creator",
+                    "type": "address",
+                    "internalType": "address"
+                },
+                {
+                    "name": "entryFee",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "maxPlayers",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "currentPlayers",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "prizePool",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "status",
+                    "type": "uint8",
+                    "internalType": "enum LastMonad.PoolStatus"
+                },
+                {
+                    "name": "createdAt",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "currentRound",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "winnerClaimed",
+                    "type": "bool",
+                    "internalType": "bool"
+                },
+                {
+                    "name": "creatorClaimed",
+                    "type": "bool",
+                    "internalType": "bool"
+                }
+            ],
+            "stateMutability": "view"
+        },
+        {
+            "type": "function",
+            "name": "projectPool",
+            "inputs": [],
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                }
+            ],
+            "stateMutability": "view"
+        },
+        {
+            "type": "function",
+            "name": "renounceOwnership",
+            "inputs": [],
+            "outputs": [],
+            "stateMutability": "nonpayable"
+        },
+        {
+            "type": "function",
+            "name": "stakeForPoolCreation",
+            "inputs": [],
+            "outputs": [],
+            "stateMutability": "payable"
+        },
+        {
+            "type": "function",
+            "name": "transferOwnership",
+            "inputs": [
+                {
+                    "name": "newOwner",
+                    "type": "address",
+                    "internalType": "address"
+                }
+            ],
+            "outputs": [],
+            "stateMutability": "nonpayable"
+        },
+        {
+            "type": "function",
+            "name": "unstakeAndClaim",
+            "inputs": [],
+            "outputs": [],
+            "stateMutability": "nonpayable"
+        },
+        {
+            "type": "function",
+            "name": "withdrawProjectPoolFunds",
+            "inputs": [
+                {
+                    "name": "amount",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                }
+            ],
+            "outputs": [],
+            "stateMutability": "nonpayable"
+        },
+        {
+            "type": "event",
+            "name": "CreatorRewardClaimed",
+            "inputs": [
+                {
+                    "name": "creator",
+                    "type": "address",
+                    "indexed": true,
+                    "internalType": "address"
+                },
+                {
+                    "name": "amount",
+                    "type": "uint256",
+                    "indexed": false,
+                    "internalType": "uint256"
+                }
+            ],
+            "anonymous": false
+        },
+        {
+            "type": "event",
+            "name": "CreatorRewardClaimedFromPool",
+            "inputs": [
+                {
+                    "name": "poolId",
+                    "type": "uint256",
+                    "indexed": true,
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "creator",
+                    "type": "address",
+                    "indexed": true,
+                    "internalType": "address"
+                },
+                {
+                    "name": "amount",
+                    "type": "uint256",
+                    "indexed": false,
+                    "internalType": "uint256"
+                }
+            ],
+            "anonymous": false
+        },
+        {
+            "type": "event",
+            "name": "GameCompleted",
+            "inputs": [
+                {
+                    "name": "poolId",
+                    "type": "uint256",
+                    "indexed": true,
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "winner",
+                    "type": "address",
+                    "indexed": true,
+                    "internalType": "address"
+                },
+                {
+                    "name": "prizeAmount",
+                    "type": "uint256",
+                    "indexed": false,
+                    "internalType": "uint256"
+                }
+            ],
+            "anonymous": false
+        },
+        {
+            "type": "event",
+            "name": "OwnershipTransferred",
+            "inputs": [
+                {
+                    "name": "previousOwner",
+                    "type": "address",
+                    "indexed": true,
+                    "internalType": "address"
+                },
+                {
+                    "name": "newOwner",
+                    "type": "address",
+                    "indexed": true,
+                    "internalType": "address"
+                }
+            ],
+            "anonymous": false
+        },
+        {
+            "type": "event",
+            "name": "PlayerJoined",
+            "inputs": [
+                {
+                    "name": "poolId",
+                    "type": "uint256",
+                    "indexed": true,
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "player",
+                    "type": "address",
+                    "indexed": true,
+                    "internalType": "address"
+                },
+                {
+                    "name": "currentPlayers",
+                    "type": "uint256",
+                    "indexed": false,
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "maxPlayers",
+                    "type": "uint256",
+                    "indexed": false,
+                    "internalType": "uint256"
+                }
+            ],
+            "anonymous": false
+        },
+        {
+            "type": "event",
+            "name": "PlayerMadeChoice",
+            "inputs": [
+                {
+                    "name": "poolId",
+                    "type": "uint256",
+                    "indexed": true,
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "player",
+                    "type": "address",
+                    "indexed": true,
+                    "internalType": "address"
+                },
+                {
+                    "name": "choice",
+                    "type": "uint8",
+                    "indexed": false,
+                    "internalType": "enum LastMonad.PlayerChoice"
+                },
+                {
+                    "name": "round",
+                    "type": "uint256",
+                    "indexed": false,
+                    "internalType": "uint256"
+                }
+            ],
+            "anonymous": false
+        },
+        {
+            "type": "event",
+            "name": "PoolAbandoned",
+            "inputs": [
+                {
+                    "name": "poolId",
+                    "type": "uint256",
+                    "indexed": true,
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "creator",
+                    "type": "address",
+                    "indexed": true,
+                    "internalType": "address"
+                },
+                {
+                    "name": "refundAmount",
+                    "type": "uint256",
+                    "indexed": false,
+                    "internalType": "uint256"
+                }
+            ],
+            "anonymous": false
+        },
+        {
+            "type": "event",
+            "name": "PoolActivated",
+            "inputs": [
+                {
+                    "name": "poolId",
+                    "type": "uint256",
+                    "indexed": true,
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "totalPlayers",
+                    "type": "uint256",
+                    "indexed": false,
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "prizePool",
+                    "type": "uint256",
+                    "indexed": false,
+                    "internalType": "uint256"
+                }
+            ],
+            "anonymous": false
+        },
+        {
+            "type": "event",
+            "name": "PoolCreated",
+            "inputs": [
+                {
+                    "name": "poolId",
+                    "type": "uint256",
+                    "indexed": true,
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "creator",
+                    "type": "address",
+                    "indexed": true,
+                    "internalType": "address"
+                },
+                {
+                    "name": "entryFee",
+                    "type": "uint256",
+                    "indexed": false,
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "maxPlayers",
+                    "type": "uint256",
+                    "indexed": false,
+                    "internalType": "uint256"
+                }
+            ],
+            "anonymous": false
+        },
+        {
+            "type": "event",
+            "name": "ProjectPoolUpdated",
+            "inputs": [
+                {
+                    "name": "amount",
+                    "type": "uint256",
+                    "indexed": false,
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "source",
+                    "type": "string",
+                    "indexed": false,
+                    "internalType": "string"
+                },
+                {
+                    "name": "totalPool",
+                    "type": "uint256",
+                    "indexed": false,
+                    "internalType": "uint256"
+                }
+            ],
+            "anonymous": false
+        },
+        {
+            "type": "event",
+            "name": "RoundRepeated",
+            "inputs": [
+                {
+                    "name": "poolId",
+                    "type": "uint256",
+                    "indexed": true,
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "round",
+                    "type": "uint256",
+                    "indexed": false,
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "unanimousChoice",
+                    "type": "uint8",
+                    "indexed": false,
+                    "internalType": "enum LastMonad.PlayerChoice"
+                },
+                {
+                    "name": "playerCount",
+                    "type": "uint256",
+                    "indexed": false,
+                    "internalType": "uint256"
+                }
+            ],
+            "anonymous": false
+        },
+        {
+            "type": "event",
+            "name": "RoundResolved",
+            "inputs": [
+                {
+                    "name": "poolId",
+                    "type": "uint256",
+                    "indexed": true,
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "round",
+                    "type": "uint256",
+                    "indexed": false,
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "winningChoice",
+                    "type": "uint8",
+                    "indexed": false,
+                    "internalType": "enum LastMonad.PlayerChoice"
+                },
+                {
+                    "name": "eliminatedCount",
+                    "type": "uint256",
+                    "indexed": false,
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "remainingCount",
+                    "type": "uint256",
+                    "indexed": false,
+                    "internalType": "uint256"
+                }
+            ],
+            "anonymous": false
+        },
+        {
+            "type": "event",
+            "name": "StakeDeposited",
+            "inputs": [
+                {
+                    "name": "creator",
+                    "type": "address",
+                    "indexed": true,
+                    "internalType": "address"
+                },
+                {
+                    "name": "amount",
+                    "type": "uint256",
+                    "indexed": false,
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "poolsEligible",
+                    "type": "uint256",
+                    "indexed": false,
+                    "internalType": "uint256"
+                }
+            ],
+            "anonymous": false
+        },
+        {
+            "type": "event",
+            "name": "StakeWithdrawn",
+            "inputs": [
+                {
+                    "name": "creator",
+                    "type": "address",
+                    "indexed": true,
+                    "internalType": "address"
+                },
+                {
+                    "name": "amount",
+                    "type": "uint256",
+                    "indexed": false,
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "penalty",
+                    "type": "uint256",
+                    "indexed": false,
+                    "internalType": "uint256"
+                }
+            ],
+            "anonymous": false
+        },
+        {
+            "type": "event",
+            "name": "WinnerPrizeClaimed",
+            "inputs": [
+                {
+                    "name": "poolId",
+                    "type": "uint256",
+                    "indexed": true,
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "winner",
+                    "type": "address",
+                    "indexed": true,
+                    "internalType": "address"
+                },
+                {
+                    "name": "amount",
+                    "type": "uint256",
+                    "indexed": false,
+                    "internalType": "uint256"
+                }
+            ],
+            "anonymous": false
+        },
+        {
+            "type": "error",
+            "name": "OwnableInvalidOwner",
+            "inputs": [
+                {
+                    "name": "owner",
+                    "type": "address",
+                    "internalType": "address"
+                }
+            ]
+        },
+        {
+            "type": "error",
+            "name": "OwnableUnauthorizedAccount",
+            "inputs": [
+                {
+                    "name": "account",
+                    "type": "address",
+                    "internalType": "address"
+                }
+            ]
+        },
+        {
+            "type": "error",
+            "name": "ReentrancyGuardReentrantCall",
+            "inputs": []
+        }
+    ] as const;

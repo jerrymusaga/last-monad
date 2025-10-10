@@ -227,7 +227,13 @@ export default function PoolsPage() {
               {filteredPools.map((pool) => (
                 <div
                   key={pool.id}
-                  onClick={() => router.push(`/pools/${pool.poolId}`)}
+                  onClick={() => {
+                    if (pool.status === "COMPLETED") {
+                      router.push(`/game/${pool.poolId}`);
+                    } else {
+                      router.push(`/pools/${pool.poolId}`);
+                    }
+                  }}
                   className="bg-gradient-to-br from-gray-800/80 to-gray-900/80 border-2 border-gray-700 hover:border-purple-500 rounded-2xl p-6 backdrop-blur-sm transition-all hover:scale-105 cursor-pointer group"
                 >
                   {/* Status Badge */}

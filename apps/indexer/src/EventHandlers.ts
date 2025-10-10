@@ -40,6 +40,8 @@ LastMonad.PoolCreated.handler(async ({ event, context }: any) => {
     prizePool: 0n,
     status: "OPENED",
     createdAt: BigInt(event.block.timestamp),
+    winnerClaimed: false,
+    creatorClaimed: false,
   });
 
   // Update or create Creator entity
@@ -310,7 +312,7 @@ LastMonad.StakeWithdrawn.handler(async ({ event, context }: any) => {
   }
 });
 
-// 11. Creator Reward Claimed Handler
+// 11. Creator Reward Claimed Handler (legacy - bulk claim via unstake)
 LastMonad.CreatorRewardClaimed.handler(async ({ event, context }: any) => {
   // Store raw event
   context.LastMonad_CreatorRewardClaimed.set({
@@ -318,6 +320,55 @@ LastMonad.CreatorRewardClaimed.handler(async ({ event, context }: any) => {
     creator: event.params.creator,
     amount: event.params.amount,
   });
+});
+
+// 11a. Winner Prize Claimed Handler
+LastMonad.WinnerPrizeClaimed.handler(async ({ event, context }: any) => {
+  // Store raw event
+  context.LastMonad_WinnerPrizeClaimed.set({
+    id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
+    poolId: event.params.poolId,
+    winner: event.params.winner,
+    amount: event.params.amount,
+  });
+
+  // Update Pool entity
+  const pool = await context.Pool.get(event.params.poolId.toString());
+  if (pool) {
+    context.Pool.set({
+      ...pool,
+      winnerClaimed: true,
+    });
+  }
+});
+
+// 11b. Creator Reward Claimed From Pool Handler
+LastMonad.CreatorRewardClaimedFromPool.handler(async ({ event, context }: any) => {
+  // Store raw event
+  context.LastMonad_CreatorRewardClaimedFromPool.set({
+    id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
+    poolId: event.params.poolId,
+    creator: event.params.creator,
+    amount: event.params.amount,
+  });
+
+  // Update Pool entity
+  const pool = await context.Pool.get(event.params.poolId.toString());
+  if (pool) {
+    context.Pool.set({
+      ...pool,
+      creatorClaimed: true,
+    });
+  }
+
+  // Update Creator total rewards
+  const creator = await context.Creator.get(event.params.creator.toLowerCase());
+  if (creator) {
+    context.Creator.set({
+      ...creator,
+      totalRewards: creator.totalRewards + event.params.amount,
+    });
+  }
 });
 
 // 12. Project Pool Updated Handler

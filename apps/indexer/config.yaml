@@ -2,15 +2,17 @@
 name: indexer
 networks:
 - id: 10143
-  start_block: 41767109  # LastMonad deployment block
+  start_block: 42154430  # LastMonad deployment block
   contracts:
   - name: LastMonad
     address:
-    - 0x36A89CDeC4911af8DFfaf8c0D5e4E96008249E9D
+    - 0xDEcD7907CF3D01479Ce690D4108977021060C7da
     handler: src/EventHandlers.ts
     events:
     - event: CreatorRewardClaimed(address indexed creator, uint256 amount)
+    - event: CreatorRewardClaimedFromPool(uint256 indexed poolId, address indexed creator, uint256 amount)
     - event: GameCompleted(uint256 indexed poolId, address indexed winner, uint256 prizeAmount)
+    - event: WinnerPrizeClaimed(uint256 indexed poolId, address indexed winner, uint256 amount)
     - event: OwnershipTransferred(address indexed previousOwner, address indexed newOwner)
     - event: PlayerJoined(uint256 indexed poolId, address indexed player, uint256 currentPlayers, uint256 maxPlayers)
     - event: PlayerMadeChoice(uint256 indexed poolId, address indexed player, uint8 choice, uint256 round)

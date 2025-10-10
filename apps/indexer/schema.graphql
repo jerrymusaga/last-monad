@@ -5,6 +5,20 @@ type LastMonad_CreatorRewardClaimed {
   amount: BigInt!
 }
 
+type LastMonad_WinnerPrizeClaimed {
+  id: ID!
+  poolId: BigInt!
+  winner: String!
+  amount: BigInt!
+}
+
+type LastMonad_CreatorRewardClaimedFromPool {
+  id: ID!
+  poolId: BigInt!
+  creator: String!
+  amount: BigInt!
+}
+
 type LastMonad_GameCompleted {
   id: ID!
   poolId: BigInt!
@@ -112,6 +126,8 @@ type Pool {
   winner: String
   winnerPrize: BigInt
   creatorReward: BigInt
+  winnerClaimed: Boolean!
+  creatorClaimed: Boolean!
 }
 
 type Player {

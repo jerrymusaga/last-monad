@@ -38,15 +38,15 @@ export default function PoolDetailPage() {
   }, [poolId, isLoading, queryError, gameData, pool]);
 
   const players = gameData?.Player || [];
-  const activePlayers = players.filter((p) => !p.isEliminated);
   const isPlayerInPool = players.some((p) => p.player.toLowerCase() === address?.toLowerCase());
+  const isCreator = pool?.creator.toLowerCase() === address?.toLowerCase();
 
-  // Redirect to game page if pool is ACTIVE (game has started)
+  // Redirect to game page if pool is ACTIVE (game has started) AND user is a player
   useEffect(() => {
-    if (pool && pool.status === "ACTIVE") {
+    if (pool && pool.status === "ACTIVE" && isPlayerInPool) {
       router.push(`/game/${poolId}`);
     }
-  }, [pool, poolId, router]);
+  }, [pool, poolId, router, isPlayerInPool]);
 
   // Handle successful join with polling for indexer
   useEffect(() => {
@@ -211,8 +211,28 @@ export default function PoolDetailPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Main Game Area */}
             <div className="lg:col-span-2 space-y-8">
+              {/* Creator View - can't join own pool */}
+              {pool.status === "OPENED" && isCreator && (
+                <div className="bg-gradient-to-br from-purple-900/40 to-pink-900/40 border-2 border-purple-500/50 rounded-2xl p-8 text-center">
+                  <div className="text-6xl mb-4">👑</div>
+                  <h2 className="text-3xl font-bold text-white mb-4">Your Pool</h2>
+                  <p className="text-gray-300 text-lg mb-6">
+                    You created this pool. Waiting for players to join...
+                  </p>
+                  <div className="bg-gray-800/50 rounded-xl p-5 mb-4">
+                    <p className="text-gray-400 text-sm mb-2">Current Players</p>
+                    <p className="text-4xl font-black text-white">
+                      {pool.currentPlayers.toString()}/{pool.maxPlayers.toString()}
+                    </p>
+                  </div>
+                  <p className="text-gray-400 text-sm">
+                    Pool creators cannot join their own pools.
+                  </p>
+                </div>
+              )}
+
               {/* Join Pool Button for OPENED pools */}
-              {pool.status === "OPENED" && !isPlayerInPool && !joinSuccess && (
+              {pool.status === "OPENED" && !isPlayerInPool && !isCreator && !joinSuccess && (
                 <div className="bg-gradient-to-br from-green-900/40 to-emerald-900/40 border-2 border-green-500/50 rounded-2xl p-8 text-center">
                   <div className="text-6xl mb-4">🎮</div>
                   <h2 className="text-3xl font-bold text-white mb-4">Join This Pool!</h2>
@@ -278,6 +298,39 @@ export default function PoolDetailPage() {
                   <p className="text-gray-400 text-sm">
                     The game will automatically start when the pool is full or the creator activates it.
                   </p>
+                </div>
+              )}
+
+              {/* Game In Progress - for non-players */}
+              {pool.status === "ACTIVE" && !isPlayerInPool && (
+                <div className="bg-gradient-to-br from-yellow-900/40 to-orange-900/40 border-2 border-yellow-500/50 rounded-2xl p-8 text-center">
+                  <div className="text-6xl mb-4">⚔️</div>
+                  <h2 className="text-3xl font-bold text-white mb-4">Game In Progress</h2>
+                  <p className="text-gray-300 text-lg mb-6">
+                    This game is currently active. Check back when it's completed to see the results!
+                  </p>
+                  <div className="bg-gray-800/50 rounded-xl p-5">
+                    <p className="text-gray-400 text-sm mb-2">Players Remaining</p>
+                    <p className="text-4xl font-black text-white">{players.filter(p => !p.isEliminated).length}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Game Completed - show results */}
+              {pool.status === "COMPLETED" && pool.winner && (
+                <div className="bg-gradient-to-br from-yellow-900/40 to-orange-900/40 border-2 border-yellow-500/50 rounded-2xl p-12 text-center">
+                  <div className="text-8xl mb-6">🏆</div>
+                  <h2 className="text-5xl font-black text-yellow-400 mb-4">WINNER!</h2>
+                  <p className="text-2xl text-white font-bold font-mono mb-4">
+                    {pool.winner.slice(0, 6)}...{pool.winner.slice(-4)}
+                  </p>
+                  <p className="text-xl text-gray-300 mb-6">
+                    Won <span className="text-yellow-400 font-bold">{parseFloat(formatEther(pool.winnerPrize || 0n)).toFixed(2)} MON</span>
+                  </p>
+                  <div className="bg-gray-800/50 rounded-xl p-5">
+                    <p className="text-gray-400 text-sm mb-2">Total Prize Pool</p>
+                    <p className="text-3xl font-black text-white">{parseFloat(formatEther(pool.prizePool)).toFixed(2)} MON</p>
+                  </div>
                 </div>
               )}
             </div>
