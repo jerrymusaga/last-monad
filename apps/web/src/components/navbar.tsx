@@ -56,8 +56,8 @@ export function Navbar() {
                     href={link.href}
                     target={link.external ? "_blank" : undefined}
                     rel={link.external ? "noopener noreferrer" : undefined}
-                    className={`flex items-center gap-2 text-base font-medium transition-colors hover:text-primary ${
-                      pathname === link.href ? "text-foreground" : "text-foreground/70"
+                    className={`flex items-center gap-2 text-base font-medium transition-colors hover:text-yellow-400 ${
+                      pathname === link.href ? "text-white" : "text-gray-300"
                     }`}
                   >
                     {link.name}
