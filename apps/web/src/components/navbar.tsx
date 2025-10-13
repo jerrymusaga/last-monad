@@ -34,7 +34,7 @@ export function Navbar() {
                 <span className="sr-only">Toggle menu</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-80 bg-gray-900 border-gray-800">
+            <SheetContent side="left" className="w-80 bg-gray-900/80 backdrop-blur-md supports-[backdrop-filter]:bg-gray-900/60 border-gray-800">
               <div className="flex items-center gap-3 mb-8">
                 {/* Mobile Logo */}
                 <div className="relative">
